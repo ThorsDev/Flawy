@@ -1,0 +1,13 @@
+# name        repository                                        ref                  submodules
+SDL           https://github.com/libsdl-org/SDL.git             release-3.4.18       no
+bgfx          https://github.com/bkaradzic/bgfx.cmake.git       v1.166.9546-589      yes
+miniaudio     https://github.com/mackron/miniaudio.git          0.11.25              no
+simdjson      https://github.com/simdjson/simdjson.git          v5.0.4               no
+fastgltf      https://github.com/spnda/fastgltf.git             v0.9.1               no
+entt          https://github.com/skypjack/entt.git              v3.16.0              no
+angelscript   https://github.com/anjo76/angelscript.git         v2.38.0              no
+JoltPhysics   https://github.com/jrouwe/JoltPhysics.git         v5.6.0               no
+glm           https://github.com/g-truc/glm.git                 1.0.3                no
+imgui         https://github.com/ocornut/imgui.git              v1.92.9b             no
+tracy         https://github.com/wolfpld/tracy.git              v0.14.1              no
+spdlog        https://github.com/gabime/spdlog.git              v1.17.0              no
