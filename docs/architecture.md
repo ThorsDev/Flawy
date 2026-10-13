@@ -23,7 +23,8 @@
 ├── Flawy-Sandbox/            konzolos tesztalkalmazás (target: Flawy-Sandbox)
 │   └── src/
 ├── scripts/
-│   ├── dependencies.txt      rögzített függőséglista
+│   ├── dependencies.txt      rögzített, gitről klónozott függőségek
+│   ├── prebuilt.txt          rögzített, előre fordított release-ek platformonként (Slang, DXC)
 │   ├── install.bat           Windows launcher (duplakattal is futtatható), az install.ps1-et hívja
 │   ├── install.ps1           függőségek letöltése (Windows)
 │   └── install.sh            függőségek letöltése (Linux/macOS)
@@ -47,6 +48,16 @@ Minden modul saját namespace-t és almappát kap:
 | Scripting | `Flawy::Scripting` | AngelScript integráció |
 
 A modulok közti függőség egy irányba mutat: a Core-ra mindenki építhet, a Core viszont semmire. A harmadik féltől származó típusok lehetőleg ne szivárogjanak ki a publikus headerekbe. Ha mégis kell, a könyvtárat `PUBLIC`-ként kell linkelni.
+
+**Kivétel: `Core::Application` a composition root.** Ez az egyetlen hely a Core-ban, amely a Platform és a Renderer modulra építhet: létrehozza az `IPlatformSystem`-et, az `IWindow`-t és a `RenderDevice`-t, majd fordított sorrendben bontja le őket. A Core többi része (Logger, BuildInfo, ...) továbbra is függőségmentes.
+
+### Application életciklus
+
+- `Initialize()`: platform → ablak → `RenderDevice` (az ablak pixelméretével), majd `OnStart()`. Másodszori hívása no-op.
+- `Tick()`: eventek feldolgozása (bezárás → kilépés, méretváltozás → `RenderDevice::Resize`), `OnUpdate(dt)`, `BeginFrame()`, `OnRender()`, `EndFrame()`.
+- `Shutdown()`: `OnShutdown()`, majd a renderer, az ablak és a platform lebontása. A bgfx handle-öket burkoló alosztály-erőforrásokat az `OnShutdown()`-ban kell felszabadítani.
+- `Run()` = `Initialize()` + `Tick()` ciklus amíg fut + `Shutdown()`. A `Tick()` és a `Shutdown()` `Initialize()` előtt `std::logic_error`-t dob.
+- A bgfx egyszálú módban fut: a `RenderDevice` az `bgfx::init()` előtt egyszer meghívja a `bgfx::renderFrame()`-et a fő szálon.
 
 ## Függőségek láthatósága
 
@@ -86,4 +97,7 @@ CMake opciók:
 ```cmake
 add_subdirectory(path/to/Flawy)
 target_link_libraries(MyEditor PRIVATE Flawy::Flawy)
+flawy_copy_runtime_dependencies(MyEditor)
 ```
+
+A `flawy_copy_runtime_dependencies(<target>)` Windowson egy POST_BUILD lépésben a `$<TARGET_RUNTIME_DLLS>` által visszaadott DLL-eket (pl. a Slang runtime-ot) a futtatható állomány mellé másolja; üres lista esetén no-op. A `flawy_configure_target` minden `EXECUTABLE` targetre automatikusan meghívja, így a repón belüli hostoknál (Flawy-Sandbox) nincs vele teendő.

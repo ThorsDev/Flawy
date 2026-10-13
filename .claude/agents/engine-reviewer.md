@@ -22,6 +22,10 @@ cmake --build --preset vs2026-debug
 build/vs2026/bin/Debug/Flawy-Sandbox.exe
 ```
 
+## Running the Sandbox (GUI)
+
+The Sandbox opens a real window on the user's machine. Launching it repeatedly makes the machine unusable. Launch it **at most once per backend** for final verification. Never launch it in loops or in parallel, and always make sure the process has exited afterwards. Verify edge cases without opening a window per case: batch them into one run, check them through logs, or state in the report that they are unverified.
+
 ## Checklist
 
 - **Build:** compiles with zero warnings, and Sandbox runs if relevant.

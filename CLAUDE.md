@@ -9,6 +9,7 @@ The user communicates in Hungarian. Answer in Hungarian. Code, identifiers and a
 - `docs/toolset.md`: dependencies, pinned versions, and how to add a new one
 - `docs/architecture.md`: folder layout, modules, link visibility, how to build
 - `docs/coding-standards.md`: binding code rules (no comments, OOP, naming)
+- `docs/shaders.md`: Slang shader pipeline design (runtime compilation for every bgfx backend)
 
 ## Build
 
@@ -19,7 +20,7 @@ cmake --build --preset vs2026-debug
 build/vs2026/bin/Debug/Flawy-Sandbox.exe
 ```
 
-Dependencies come only from `scripts/dependencies.txt` through the install scripts. No package managers, no FetchContent, no git submodules in this repo. Never edit `vendor/`.
+Dependencies come only from `scripts/dependencies.txt` (git sources) and `scripts/prebuilt.txt` (pinned prebuilt release archives: Slang, DXC) through the install scripts. No package managers, no FetchContent, no git submodules in this repo. Never edit `vendor/`.
 
 ## Agentic workflow (mandatory for every engine task)
 
@@ -34,6 +35,8 @@ Every code task goes through three agents:
    - Allow at most 3 review rounds. If the review is still not approved after 3 rounds, stop and report the remaining findings to the user.
 
 Pass each agent the full context it needs: the user's request, the plan, and the review findings. Agents do not see this conversation. After approval, report to the user in Hungarian: what was done, which files changed, and the build result. Commit only when the user asks.
+
+When delegating, always tell agents: launch the Sandbox window at most once per backend, never in loops or in parallel (it makes the user's machine unusable).
 
 Trivial non-code edits (docs typos, this file) may be done directly without the pipeline.
 

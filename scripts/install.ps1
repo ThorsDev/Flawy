@@ -10,6 +10,7 @@ $RootDir = Split-Path -Parent $PSScriptRoot
 $VendorDir = Join-Path $RootDir 'vendor'
 $LockDir = Join-Path $VendorDir '.locks'
 $Manifest = Join-Path $PSScriptRoot 'dependencies.txt'
+$PrebuiltManifest = Join-Path $PSScriptRoot 'prebuilt.txt'
 
 function Invoke-Git {
     param([string]$WorkDir, [string[]]$Arguments)
@@ -62,6 +63,59 @@ function Install-Dependency {
     Set-Content -Path $lockFile -Value $lockValue -Encoding ascii
 }
 
+function Get-HostPlatform {
+    $architecture = if ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') { 'arm64' } else { 'x64' }
+    "windows-$architecture"
+}
+
+function Get-PrebuiltDependencies {
+    $platform = Get-HostPlatform
+    Get-Content $PrebuiltManifest |
+        Where-Object { $_.Trim() -and -not $_.TrimStart().StartsWith('#') } |
+        ForEach-Object {
+            $fields = $_.Trim() -split '\s+'
+            [pscustomobject]@{
+                Name     = $fields[0]
+                Platform = $fields[1]
+                Url      = $fields[2]
+            }
+        } |
+        Where-Object { $_.Platform -eq $platform }
+}
+
+function Install-PrebuiltDependency {
+    param($Dependency)
+
+    $target = Join-Path $VendorDir $Dependency.Name
+    $lockFile = Join-Path $LockDir $Dependency.Name
+    $lockValue = $Dependency.Url
+
+    if (-not $Force -and (Test-Path $target) -and (Test-Path $lockFile) -and ((Get-Content $lockFile -Raw).Trim() -eq $lockValue)) {
+        Write-Host "[skip] $($Dependency.Name) ($($Dependency.Platform))"
+        return
+    }
+
+    Write-Host "[get ] $($Dependency.Name) ($($Dependency.Platform))"
+    if (Test-Path $target) {
+        Remove-Item -Recurse -Force $target
+    }
+
+    $archive = Join-Path $LockDir "$($Dependency.Name).zip"
+    $previousProgress = $ProgressPreference
+    $ProgressPreference = 'SilentlyContinue'
+    try {
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+        Invoke-WebRequest -Uri $Dependency.Url -OutFile $archive -UseBasicParsing
+        Expand-Archive -Path $archive -DestinationPath $target -Force
+    }
+    finally {
+        $ProgressPreference = $previousProgress
+        Remove-Item -Force $archive -ErrorAction SilentlyContinue
+    }
+
+    Set-Content -Path $lockFile -Value $lockValue -Encoding ascii
+}
+
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
     throw 'git is required but was not found on PATH.'
 }
@@ -75,6 +129,15 @@ if ($Only) {
 
 foreach ($dependency in $dependencies) {
     Install-Dependency $dependency
+}
+
+$prebuiltDependencies = Get-PrebuiltDependencies
+if ($Only) {
+    $prebuiltDependencies = $prebuiltDependencies | Where-Object { $Only -contains $_.Name }
+}
+
+foreach ($dependency in $prebuiltDependencies) {
+    Install-PrebuiltDependency $dependency
 }
 
 Write-Host "Dependencies are ready in $VendorDir"

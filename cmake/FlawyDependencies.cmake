@@ -2,7 +2,7 @@ include_guard(GLOBAL)
 
 set(FLAWY_VENDOR_DIR "${PROJECT_SOURCE_DIR}/vendor" CACHE PATH "Directory containing the Flawy third-party dependencies")
 
-set(FLAWY_REQUIRED_VENDORS SDL bgfx miniaudio simdjson fastgltf entt angelscript JoltPhysics glm imgui tracy spdlog)
+set(FLAWY_REQUIRED_VENDORS SDL bgfx miniaudio simdjson fastgltf entt angelscript JoltPhysics glm imgui tracy spdlog slang)
 
 foreach(vendor IN LISTS FLAWY_REQUIRED_VENDORS)
     if(NOT EXISTS "${FLAWY_VENDOR_DIR}/${vendor}")
@@ -109,5 +109,30 @@ set(SPDLOG_BUILD_EXAMPLE OFF)
 set(SPDLOG_BUILD_TESTS OFF)
 set(SPDLOG_INSTALL OFF)
 add_subdirectory("${FLAWY_VENDOR_DIR}/spdlog" "${CMAKE_BINARY_DIR}/vendor/spdlog" EXCLUDE_FROM_ALL SYSTEM)
+
+set(FLAWY_SLANG_DIR "${FLAWY_VENDOR_DIR}/slang")
+add_library(Slang::slang SHARED IMPORTED GLOBAL)
+add_library(Slang::slang-compiler SHARED IMPORTED GLOBAL)
+if(WIN32)
+    set_target_properties(Slang::slang PROPERTIES
+        IMPORTED_LOCATION "${FLAWY_SLANG_DIR}/bin/slang.dll"
+        IMPORTED_IMPLIB "${FLAWY_SLANG_DIR}/lib/slang.lib"
+    )
+    set_target_properties(Slang::slang-compiler PROPERTIES
+        IMPORTED_LOCATION "${FLAWY_SLANG_DIR}/bin/slang-compiler.dll"
+        IMPORTED_IMPLIB "${FLAWY_SLANG_DIR}/lib/slang-compiler.lib"
+    )
+elseif(APPLE)
+    set_target_properties(Slang::slang PROPERTIES IMPORTED_LOCATION "${FLAWY_SLANG_DIR}/lib/libslang.dylib")
+    set_target_properties(Slang::slang-compiler PROPERTIES IMPORTED_LOCATION "${FLAWY_SLANG_DIR}/lib/libslang-compiler.dylib")
+else()
+    set_target_properties(Slang::slang PROPERTIES IMPORTED_LOCATION "${FLAWY_SLANG_DIR}/lib/libslang.so")
+    set_target_properties(Slang::slang-compiler PROPERTIES IMPORTED_LOCATION "${FLAWY_SLANG_DIR}/lib/libslang-compiler.so")
+endif()
+set_target_properties(Slang::slang PROPERTIES
+    INTERFACE_INCLUDE_DIRECTORIES "${FLAWY_SLANG_DIR}/include"
+    INTERFACE_COMPILE_DEFINITIONS SLANG_DYNAMIC
+)
+target_link_libraries(Slang::slang INTERFACE Slang::slang-compiler)
 
 unset(CMAKE_FOLDER)

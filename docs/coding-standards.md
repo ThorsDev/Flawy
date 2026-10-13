@@ -63,6 +63,7 @@ Every variable, parameter and data member uses a type prefix. The scope prefix (
 | `up` | `std::unique_ptr` | `upRenderer` |
 | `sp` | `std::shared_ptr` | `spLogger` |
 | `wp` | `std::weak_ptr` | `wpOwner` |
+| `cp` | COM-style smart pointers (`Slang::ComPtr`, `Microsoft::WRL::ComPtr`) | `cpGlobalSession` |
 | `opt` | `std::optional` | `optPath` |
 | `v` | `std::vector` | `vEntities` |
 | `a` | `std::array` / C array | `aCorners` |

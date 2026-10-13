@@ -23,3 +23,4 @@ Az `install.bat` duplakattal is indítható. Linuxon és macOS-en a `./scripts/i
 - [Toolset](docs/toolset.md)
 - [Architektúra és projektstruktúra](docs/architecture.md)
 - [Coding standards](docs/coding-standards.md)
+- [Shader pipeline](docs/shaders.md)

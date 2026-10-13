@@ -2,7 +2,7 @@
 
 A Flawy egy egyszerű, multiplatform, C++20-ban írt game engine. Minden függőség nyílt forrású, és megengedő licencű (MIT / zlib / BSD / public domain).
 
-A függőségeket nem package managerből húzzuk. A `scripts/install.bat` / `scripts/install.ps1` (Windows) vagy a `scripts/install.sh` (Linux/macOS) klónozza le őket gitről a `vendor/` mappába. A verziók rögzítettek, és a `scripts/dependencies.txt` fájlban vannak.
+A függőségeket nem package managerből húzzuk. A `scripts/install.bat` / `scripts/install.ps1` (Windows) vagy a `scripts/install.sh` (Linux/macOS) klónozza le őket gitről a `vendor/` mappába. A verziók rögzítettek. A forrásból fordított függőségek a `scripts/dependencies.txt`-ben vannak. Az előre fordított binárisok (Slang, DXC) a `scripts/prebuilt.txt`-ben vannak platformonként; ezeket az install script a GitHub release-ekből tölti le, és kicsomagolja.
 
 ## Alap stack
 
@@ -18,6 +18,8 @@ A függőségeket nem package managerből húzzuk. A `scripts/install.bat` / `sc
 | Fizika | Jolt Physics | v5.6.0 | MIT | https://github.com/jrouwe/JoltPhysics |
 | Matek | GLM | 1.0.3 | MIT | https://github.com/g-truc/glm |
 | Debug UI | Dear ImGui | v1.92.9b | MIT | https://github.com/ocornut/imgui |
+| Shader compiler | Slang (prebuilt release) | v2026.19 | Apache-2.0 WITH LLVM-exception | https://github.com/shader-slang/slang |
+| DXIL compiler (D3D12) | DXC (prebuilt release) | v1.9.2609 | NCSA / MIT | https://github.com/microsoft/DirectXShaderCompiler |
 | Profiling | Tracy | v0.14.1 | BSD-3 | https://github.com/wolfpld/tracy |
 | Logolás | spdlog | v1.17.0 | MIT | https://github.com/gabime/spdlog |
 
@@ -30,6 +32,7 @@ A függőségeket nem package managerből húzzuk. A `scripts/install.bat` / `sc
 - **EnTT:** header-only, gyors, és ez a legelterjedtebb C++ ECS.
 - **AngelScript:** C++-szerű, statikusan típusos scriptnyelv. Egyszerű benne natív típusokat regisztrálni, és nincs benne JIT, ezért mobilon és konzolon is használható. A buildbe ezek az add-onok kerülnek: `scriptarray`, `scriptbuilder`, `scriptdictionary`, `scripthandle`, `scripthelper`, `scriptmath`, `scriptstdstring`, `weakref`.
 - **Jolt Physics:** modern, többszálú fizikai motor. A GPU compute backendek (DX12/Vulkan/Metal) ki vannak kapcsolva.
+- **Slang + DXC:** a shadereket Slang nyelven írjuk, és az engine futás közben fordítja őket minden bgfx backendre. A DXC a D3D12-höz szükséges DXIL kódot állítja elő. Részletek: [shaders.md](shaders.md).
 - **GLM, Dear ImGui, Tracy, spdlog:** az alap kiegészítők a matekhoz, a debug UI-hoz, a profilinghoz és a logoláshoz.
 
 ## Később bekerülhet

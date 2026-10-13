@@ -40,6 +40,10 @@ build/vs2026/bin/Debug/Flawy-Sandbox.exe
 
 On non-Windows hosts, use the `ninja-debug` preset instead. The build must finish with **zero warnings and zero errors** in Flawy targets. Run the Sandbox when the change affects runtime behaviour. Do not report success unless you actually saw it succeed.
 
+## Running the Sandbox (GUI)
+
+The Sandbox opens a real window on the user's machine. Launching it repeatedly makes the machine unusable. Launch it **at most once per backend** for final verification. Never launch it in loops or in parallel, and always make sure the process has exited afterwards. Verify edge cases without opening a window per case: batch them into one run, check them through logs, or state in the report that they are unverified.
+
 ## Report format
 
 ```

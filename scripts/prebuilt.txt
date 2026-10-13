@@ -1,0 +1,10 @@
+# name    platform        archive url
+slang     windows-x64     https://github.com/shader-slang/slang/releases/download/v2026.19/slang-2026.19-windows-x86_64.zip
+slang     windows-arm64   https://github.com/shader-slang/slang/releases/download/v2026.19/slang-2026.19-windows-aarch64.zip
+slang     linux-x64       https://github.com/shader-slang/slang/releases/download/v2026.19/slang-2026.19-linux-x86_64.tar.gz
+slang     linux-arm64     https://github.com/shader-slang/slang/releases/download/v2026.19/slang-2026.19-linux-aarch64.tar.gz
+slang     macos-x64       https://github.com/shader-slang/slang/releases/download/v2026.19/slang-2026.19-macos-x86_64.tar.gz
+slang     macos-arm64     https://github.com/shader-slang/slang/releases/download/v2026.19/slang-2026.19-macos-aarch64.tar.gz
+dxc       windows-x64     https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.9.2609/dxc_2026_09_29.zip
+dxc       windows-arm64   https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.9.2609/dxc_2026_09_29.zip
+dxc       linux-x64       https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.9.2609/linux_dxc_2026_09_28.x86_x64.tar.gz

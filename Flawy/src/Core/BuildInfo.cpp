@@ -8,6 +8,7 @@
 #include <glm/detail/setup.hpp>
 #include <imgui.h>
 #include <miniaudio.h>
+#include <slang-tag-version.h>
 #include <spdlog/version.h>
 
 #include <format>
@@ -40,6 +41,7 @@ namespace Flawy::Core
             {"GLM", std::format("{}.{}.{}", GLM_VERSION_MAJOR, GLM_VERSION_MINOR, GLM_VERSION_PATCH)},
             {"Dear ImGui", IMGUI_VERSION},
             {"spdlog", std::format("{}.{}.{}", SPDLOG_VER_MAJOR, SPDLOG_VER_MINOR, SPDLOG_VER_PATCH)},
+            {"Slang", SLANG_TAG_VERSION},
         };
     }
 }
