@@ -16,6 +16,7 @@ namespace Flawy::Renderer
         uint8_t uTexComponent = 0;
         uint8_t uTexDimension = 0;
         uint16_t uTexFormat = 0;
+        uint8_t uStage = 0;
     };
 
     struct BgfxShaderInterface

@@ -2,6 +2,10 @@
 
 #include "Flawy/Core/Logger.hpp"
 
+#include <bimg/bimg.h>
+#include <bx/error.h>
+#include <bx/file.h>
+
 #include <array>
 #include <cstdio>
 #include <cstdlib>
@@ -78,8 +82,33 @@ namespace Flawy::Renderer
     {
     }
 
-    void BgfxCallbackAdapter::screenShot(const char*, uint32_t, uint32_t, uint32_t, bgfx::TextureFormat::Enum, const void*, uint32_t, bool)
+    void BgfxCallbackAdapter::screenShot(const char* szFilePath,
+                                         uint32_t uWidth,
+                                         uint32_t uHeight,
+                                         uint32_t uPitch,
+                                         bgfx::TextureFormat::Enum eFormat,
+                                         const void* pData,
+                                         uint32_t,
+                                         bool bYFlip)
     {
+        bx::Error oError;
+        bx::FileWriter oWriter;
+        if (bx::open(&oWriter, szFilePath, false, &oError))
+        {
+            bimg::imageWritePng(&oWriter, uWidth, uHeight, uPitch, pData, static_cast<bimg::TextureFormat::Enum>(eFormat), bYFlip, &oError);
+            bx::close(&oWriter);
+        }
+
+        if (!Core::Logger::IsInitialized())
+        {
+            return;
+        }
+        if (oError.isOk())
+        {
+            Core::Logger::Get().info("Screenshot saved to {} ({}x{})", szFilePath, uWidth, uHeight);
+            return;
+        }
+        Core::Logger::Get().error("Failed to save screenshot to {}: {}", szFilePath, oError.getMessage().getCPtr());
     }
 
     void BgfxCallbackAdapter::captureBegin(uint32_t, uint32_t, uint32_t, bgfx::TextureFormat::Enum, bool)

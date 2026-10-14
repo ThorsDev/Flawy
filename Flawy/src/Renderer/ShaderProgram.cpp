@@ -2,10 +2,12 @@
 
 #include "Renderer/Bgfx/BgfxResourceImpl.hpp"
 
+#include <format>
 #include <limits>
 #include <stdexcept>
 #include <string>
 #include <unordered_set>
+#include <vector>
 
 namespace Flawy::Renderer
 {
@@ -77,6 +79,36 @@ namespace Flawy::Renderer
             bgfx::ShaderHandle m_hShader;
         };
 
+        class SamplerStageValidator final
+        {
+        public:
+            void Check(const ShaderUniform& oUniform)
+            {
+                if (oUniform.eType != ShaderUniformType::Sampler)
+                {
+                    return;
+                }
+
+                for (const ShaderUniform* pKnown : m_vSamplers)
+                {
+                    const bool bSameName = pKnown->sName == oUniform.sName;
+                    const bool bSameStage = pKnown->uTextureStage == oUniform.uTextureStage;
+                    if (bSameName && !bSameStage)
+                    {
+                        throw std::invalid_argument(std::format("Sampler '{}' is declared with texture stage {} and {}", oUniform.sName, pKnown->uTextureStage, oUniform.uTextureStage));
+                    }
+                    if (!bSameName && bSameStage)
+                    {
+                        throw std::invalid_argument(std::format("Samplers '{}' and '{}' both use texture stage {}", pKnown->sName, oUniform.sName, oUniform.uTextureStage));
+                    }
+                }
+                m_vSamplers.push_back(&oUniform);
+            }
+
+        private:
+            std::vector<const ShaderUniform*> m_vSamplers;
+        };
+
         void RequireStage(const CompiledShader& oShader, ShaderStage eExpected, const char* szRole)
         {
             if (oShader.eStage != eExpected)
@@ -91,6 +123,15 @@ namespace Flawy::Renderer
     {
         RequireStage(oVertexShader, ShaderStage::Vertex, "vertex");
         RequireStage(oFragmentShader, ShaderStage::Fragment, "fragment");
+
+        SamplerStageValidator oSamplerValidator;
+        for (const CompiledShader* pShader : {&oVertexShader, &oFragmentShader})
+        {
+            for (const ShaderUniform& oUniform : pShader->oInterface.vUniforms)
+            {
+                oSamplerValidator.Check(oUniform);
+            }
+        }
 
         std::unordered_set<std::string> setRegistered;
         for (const CompiledShader* pShader : {&oVertexShader, &oFragmentShader})
@@ -107,6 +148,7 @@ namespace Flawy::Renderer
                     throw std::runtime_error("Failed to create uniform '" + oUniform.sName + "' for shader '" + pShader->sName + "'");
                 }
                 m_upImpl->vUniforms.push_back(hUniform);
+                m_upImpl->vInterface.push_back(oUniform);
             }
         }
 
@@ -125,6 +167,24 @@ namespace Flawy::Renderer
     }
 
     ShaderProgram::~ShaderProgram() = default;
+
+    std::span<const ShaderUniform> ShaderProgram::GetUniforms() const noexcept
+    {
+        return m_upImpl->vInterface;
+    }
+
+    std::optional<uint32_t> ShaderProgram::FindUniform(std::string_view svName) const noexcept
+    {
+        const std::vector<ShaderUniform>& vInterface = m_upImpl->vInterface;
+        for (size_t uIndex = 0; uIndex < vInterface.size(); ++uIndex)
+        {
+            if (vInterface[uIndex].sName == svName)
+            {
+                return static_cast<uint32_t>(uIndex);
+            }
+        }
+        return std::nullopt;
+    }
 
     const ShaderProgram::Impl& ShaderProgram::GetImpl() const noexcept
     {

@@ -1,6 +1,6 @@
 # Flawy – Shader pipeline (terv)
 
-> Állapot: az 1. fázis elkészült (Vulkan és D3D11, runtime fordítás, egy default shader, háromszög a Sandboxban).
+> Állapot: az 1. fázis elkészült (Vulkan és D3D11, runtime fordítás, default shaderek). Az engine 2. fázisában elkészültek a textúrák és samplerek (`Flawy/Sampler.slang`), a `ShaderParameters` és a render graph.
 
 ## Célok
 
@@ -87,8 +87,8 @@ Elkészült:
 - `ShaderCompiler`: Slang runtime fordítás az aktív backendre. Vulkan: SPIR-V (`spirv_1_3`), D3D11: DXBC (`sm_5_0`, a rendszer `d3dcompiler_47.dll`-jén keresztül).
 - `BgfxShaderInterfaceBuilder` és `BgfxShaderBinaryWriter`: bgfx shader bináris (12-es verzió), uniformlistával, attribútumtáblával és uniform bufferméret-adattal.
 - `EmbeddedShaderSourceProvider`: a `Flawy/shaders/*.slang` fájlokat a build egy generált `EmbeddedShaderTable.cpp`-be ágyazza (`cmake/FlawyEmbedShaders.cmake`). A `.slang` fájl módosítása után a build újragenerálja a táblát.
-- `ShaderProgram`, `VertexLayout`, `VertexBuffer`, `RenderDevice::SetViewTransform` / `Submit`.
-- Default shader: `Unlit.slang` (`VertexMain`, `FragmentMain`), a bgfx előre definiált `u_modelViewProj` uniformjával.
+- `ShaderProgram` (összefésült uniformlista, `FindUniform`), `ShaderParameters`, `VertexLayout`, `VertexBuffer`, `IndexBuffer`, `Texture`, `RenderTarget`. A rajzolás a render graph-on keresztül megy: `RenderPassContext::SetViewTransform` / `Draw` (lásd [architecture.md](architecture.md)).
+- Default shaderek (`VertexMain`, `FragmentMain`): `Unlit.slang` (a bgfx előre definiált `u_modelViewProj` uniformjával), `Textured.slang` (textúra × vertex szín × `u_tint`), `PostProcess.slang` (teljes képernyős quad, `u_tint.rgb` színezés és `u_tint.a` erősségű vignetta). Közös include: `Flawy/Sampler.slang`.
 
 Uniform binding konvenciók:
 
@@ -99,11 +99,31 @@ Uniform binding konvenciók:
 Ellenőrzött tények és korlátok:
 
 - **Runtime DLL-ek:** csak a `slang.dll` és a `slang-compiler.dll` kell. A build a `flawy_copy_runtime_dependencies` segítségével a futtatható fájl mellé másolja őket. A `slang-glslang.dll`, `slang-glsl-module.dll`, `slang-llvm.dll`, `slang-rt.dll`, `gfx.dll` és a standard module mappa nem szükséges.
-- **Textúrák és samplerek:** az 1. fázisban a `BgfxShaderInterfaceBuilder` érthető hibával elutasítja őket ("textures are supported from Phase 2").
 - **Reflexió vs. `VulkanBindGlobals`:** a Slang reflexió (`getGlobalConstantBufferBinding`) nem veszi figyelembe a `VulkanBindGlobals` felülírást, a generált SPIR-V viszont igen. Ezért Vulkanon a binding ellenőrzése a generált SPIR-V `Binding` / `DescriptorSet` dekorációin történik, D3D11-en a reflexión.
 - **Stage-enkénti uniform lista:** a uniform blokk használatát a Slang metadata (`isParameterLocationUsed`) blokk szinten adja meg. Ha egy stage használja a blokkot, a modul összes globális uniformja bekerül a stage uniformlistájába. Ez a bgfx számára helyes, csak nem minimális.
 - **`VertexLayout::GetStride`:** a bgfx D3D/Vulkan mérettáblázatát követi. GL-en és Metalon a 3 komponensű `Uint8` / `Int16` / `Half` attribútumok mérete eltér, ezért ezeknek a backendeknek a felvétele (3. fázis) előtt vagy a `VertexLayout::Add` utasítsa el ezeket a kombinációkat, vagy a stride a feloldott bgfx layoutból jöjjön.
-- **`-fvk-t-shift` / `-fvk-s-shift`:** a slangc 2026.19 ezekkel összeomlik. A 2. fázis textúra bindingjaihoz SPIR-V binding-átíró utófeldolgozás kell.
+- **`-fvk-t-shift` / `-fvk-s-shift`:** a slangc 2026.19 ezekkel összeomlik. Nincs rájuk szükség: a textúrák bindingját a `FLAWY_SAMPLER2D` makró explicit `vk::binding` és `register` attribútumokkal rögzíti (lásd lent).
+
+## Textúrák és samplerek
+
+A bgfx Vulkanon külön textúra- és sampler-descriptort vár, ezért a Slang kombinált `Sampler2D` típusa nem használható. A shaderek a beágyazott include-ot használják:
+
+```slang
+#include "Flawy/Sampler.slang"
+
+FLAWY_SAMPLER2D(s_texColor, 0);
+
+float4 color = FLAWY_SAMPLE2D(s_texColor, uv);
+```
+
+- A `FLAWY_SAMPLER2D(name, stage)` egy `Texture2D name` és egy `SamplerState nameSampler` deklarációt ad. Vulkan: `binding 2 + stage` és `18 + stage` (set 0; bgfx `kSpirvBindShift` / `kSpirvSamplerShift`). D3D11: `register(t<stage>)` és `register(s<stage>)`.
+- Az `#include` a `ShaderCompiler` saját `ISlangFileSystem`-én (`ShaderSourceFileSystem`) keresztül a beágyazott shadertáblából oldódik fel (`\` → `/`, a vezető `./` levágva).
+- A `BgfxShaderInterfaceBuilder` szabályai: csak írásvédett (read-only) `Texture2D`; minden textúrához kell egy `<név>Sampler` sampler a textúra bindingja + 16 (Vulkan) / azonos regiszter (D3D11) helyen; páratlan sampler, ütköző stage, 16 feletti stage és 0-tól eltérő register space / descriptor set hiba. A stage-ben nem használt textúra (Slang metadata) kimarad az adott stage uniformlistájából.
+- A binárisban a sampler uniform típusbájtja `Sampler | 0x20` (fragment shaderben `| 0x10` is), `regIndex` = Vulkan binding / D3D regiszter, `texDimension = 0x02` (2D). A publikus `ShaderUniform::uTextureStage` adja a stage-et.
+- A `ShaderProgram` elutasítja, ha a vertex és a fragment shader ugyanazt a samplert más stage-en, vagy két különböző samplert ugyanazon a stage-en deklarál.
+- Értékek beállítása: `ShaderParameters` (a program uniformlistájából épül, `SetVec4` / `SetMat3` / `SetMat4` / tömbös változatok / `SetTexture`). Egy programhoz több `ShaderParameters` is tartozhat (anyagok). Rajzoláskor a `DrawCommand::pParameters` kötelező, ha a program samplert használ, és minden sampler slotba textúrát kell állítani; különben `std::logic_error`.
+- UV-origó: a `PostProcess.slang` teljes képernyős quadja abból indul ki, hogy a render targetek origója a bal felső sarok (D3D11 és Vulkan), ezért a `TEXCOORD0` (0,0) a quad bal felső csúcsa, flip nélkül. GL és Metal (3. fázis) esetén a `bgfx::getCaps()->originBottomLeft` alapján fordítani kell.
+- Konvenció: a bgfx a uniformokat név szerint osztja meg, ezért egy adott nevű uniform (pl. `u_tint`) minden shaderben ugyanolyan típusú legyen.
 
 ## Fázisok
 

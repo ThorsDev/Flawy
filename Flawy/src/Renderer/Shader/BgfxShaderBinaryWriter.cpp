@@ -2,6 +2,8 @@
 
 #include "Flawy/Renderer/Shader/ShaderCompileError.hpp"
 
+#include <bgfx/bgfx.h>
+
 #include <cstdint>
 #include <limits>
 #include <string>
@@ -14,6 +16,7 @@ namespace Flawy::Renderer
     {
         constexpr uint8_t kShaderBinaryVersion = 12;
         constexpr uint8_t kFragmentUniformFlag = 0x10;
+        constexpr uint8_t kSamplerUniformFlag = 0x20;
 
         constexpr uint32_t MakeFourCc(char cA, char cB, char cC, uint8_t uD) noexcept
         {
@@ -106,7 +109,8 @@ namespace Flawy::Renderer
         {
             oWriter.WriteU8(CheckedNarrow<uint8_t>(oUniform.sName.size(), "Uniform name length"));
             oWriter.WriteText(oUniform.sName);
-            oWriter.WriteU8(static_cast<uint8_t>(oUniform.uType | uStageFlag));
+            const uint8_t uSamplerFlag = oUniform.uType == bgfx::UniformType::Sampler ? kSamplerUniformFlag : 0;
+            oWriter.WriteU8(static_cast<uint8_t>(oUniform.uType | uStageFlag | uSamplerFlag));
             oWriter.WriteU8(oUniform.uNum);
             oWriter.WriteU16(oUniform.uRegIndex);
             oWriter.WriteU16(oUniform.uRegCount);

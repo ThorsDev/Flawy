@@ -21,6 +21,7 @@ namespace Flawy::Renderer
         std::string sName;
         ShaderUniformType eType = ShaderUniformType::Vec4;
         uint16_t uCount = 1;
+        uint8_t uTextureStage = 0;
         bool bPredefined = false;
     };
 

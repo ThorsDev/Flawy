@@ -36,6 +36,8 @@ target_link_libraries(Flawy
     PRIVATE
         SDL3::SDL3-static
         bgfx
+        bimg
+        bx
         miniaudio
         fastgltf::fastgltf
         angelscript

@@ -18,7 +18,7 @@ namespace Flawy::Renderer
 
     BgfxBindingRules DxbcShaderBackendEmitter::GetBindingRules(ShaderStage) const noexcept
     {
-        return {0, 0, 0, SLANG_PARAMETER_CATEGORY_CONSTANT_BUFFER, true};
+        return {0, 0, 0, SLANG_PARAMETER_CATEGORY_CONSTANT_BUFFER, SLANG_PARAMETER_CATEGORY_SHADER_RESOURCE, SLANG_PARAMETER_CATEGORY_SAMPLER_STATE, true};
     }
 
     std::vector<std::byte> DxbcShaderBackendEmitter::EmitShaderCode(std::span<const std::byte> spanTargetCode, ShaderStage) const

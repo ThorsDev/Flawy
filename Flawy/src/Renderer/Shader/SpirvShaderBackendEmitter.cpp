@@ -126,7 +126,13 @@ namespace Flawy::Renderer
 
     BgfxBindingRules SpirvShaderBackendEmitter::GetBindingRules(ShaderStage eStage) const noexcept
     {
-        return {GetUniformBinding(eStage), kTextureBindingBase, kSamplerBindingOffset, SLANG_PARAMETER_CATEGORY_DESCRIPTOR_TABLE_SLOT, false};
+        return {GetUniformBinding(eStage),
+                kTextureBindingBase,
+                kSamplerBindingOffset,
+                SLANG_PARAMETER_CATEGORY_DESCRIPTOR_TABLE_SLOT,
+                SLANG_PARAMETER_CATEGORY_DESCRIPTOR_TABLE_SLOT,
+                SLANG_PARAMETER_CATEGORY_DESCRIPTOR_TABLE_SLOT,
+                false};
     }
 
     std::vector<std::byte> SpirvShaderBackendEmitter::EmitShaderCode(std::span<const std::byte> spanTargetCode, ShaderStage eStage) const

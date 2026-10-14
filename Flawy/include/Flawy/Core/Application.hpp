@@ -14,6 +14,7 @@ namespace Flawy::Platform
 namespace Flawy::Renderer
 {
     class RenderDevice;
+    class RenderGraph;
 }
 
 namespace Flawy::Core
@@ -47,11 +48,12 @@ namespace Flawy::Core
         [[nodiscard]] bool IsRunning() const noexcept;
         [[nodiscard]] Platform::IWindow& GetWindow();
         [[nodiscard]] Renderer::RenderDevice& GetRenderDevice();
+        [[nodiscard]] Renderer::RenderGraph& GetRenderGraph();
 
     protected:
         virtual void OnStart();
         virtual void OnUpdate(double dDeltaSeconds);
-        virtual void OnRender();
+        virtual void OnRender(Renderer::RenderGraph& oGraph);
         virtual void OnShutdown();
 
         void RequestExit() noexcept;

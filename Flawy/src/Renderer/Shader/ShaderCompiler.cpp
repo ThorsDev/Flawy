@@ -1,11 +1,13 @@
 #include "Flawy/Renderer/Shader/ShaderCompiler.hpp"
 
 #include "Flawy/Core/Logger.hpp"
+#include "Flawy/Renderer/Shader/EmbeddedShaderSourceProvider.hpp"
 #include "Flawy/Renderer/Shader/ShaderCompileError.hpp"
 #include "Renderer/Shader/BgfxShaderBinaryWriter.hpp"
 #include "Renderer/Shader/BgfxShaderInterfaceBuilder.hpp"
 #include "Renderer/Shader/IShaderBackendEmitter.hpp"
 #include "Renderer/Shader/ShaderBackendEmitterFactory.hpp"
+#include "Renderer/Shader/ShaderSourceFileSystem.hpp"
 
 #include <slang-com-ptr.h>
 #include <slang.h>
@@ -94,6 +96,8 @@ namespace Flawy::Renderer
             return oEntry;
         }
 
+        constexpr std::array<const char*, 1> kIncludeSearchPaths = {""};
+
         class CompilationContext final
         {
         public:
@@ -155,6 +159,7 @@ namespace Flawy::Renderer
     {
         explicit Impl(RendererBackend eBackend)
             : upEmitter(ShaderBackendEmitterFactory::Create(eBackend))
+            , oFileSystem(oIncludeProvider)
         {
             if (SLANG_FAILED(slang::createGlobalSession(cpGlobalSession.writeRef())))
             {
@@ -162,7 +167,7 @@ namespace Flawy::Renderer
             }
         }
 
-        [[nodiscard]] Slang::ComPtr<slang::ISession> CreateSession(CompilationContext& oContext) const
+        [[nodiscard]] Slang::ComPtr<slang::ISession> CreateSession(CompilationContext& oContext)
         {
             std::vector<slang::CompilerOptionEntry> vOptions = {
                 MakeIntOption(slang::CompilerOptionName::MatrixLayoutColumn, 1),
@@ -189,6 +194,9 @@ namespace Flawy::Renderer
             oSessionDesc.defaultMatrixLayoutMode = SLANG_MATRIX_LAYOUT_COLUMN_MAJOR;
             oSessionDesc.preprocessorMacros = vMacros.data();
             oSessionDesc.preprocessorMacroCount = static_cast<SlangInt>(vMacros.size());
+            oSessionDesc.fileSystem = &oFileSystem;
+            oSessionDesc.searchPaths = kIncludeSearchPaths.data();
+            oSessionDesc.searchPathCount = static_cast<SlangInt>(kIncludeSearchPaths.size());
 
             Slang::ComPtr<slang::ISession> cpSession;
             oContext.Check(cpGlobalSession->createSession(oSessionDesc, cpSession.writeRef()), "could not create a Slang session");
@@ -228,7 +236,7 @@ namespace Flawy::Renderer
             return cpLinked;
         }
 
-        [[nodiscard]] CompiledShader Compile(CompilationContext& oContext) const
+        [[nodiscard]] CompiledShader Compile(CompilationContext& oContext)
         {
             const Slang::ComPtr<slang::ISession> cpSession = CreateSession(oContext);
             const Slang::ComPtr<slang::IComponentType> cpProgram = LinkProgram(*cpSession.get(), oContext);
@@ -278,6 +286,8 @@ namespace Flawy::Renderer
         }
 
         std::unique_ptr<IShaderBackendEmitter> upEmitter;
+        EmbeddedShaderSourceProvider oIncludeProvider;
+        ShaderSourceFileSystem oFileSystem;
         Slang::ComPtr<slang::IGlobalSession> cpGlobalSession;
     };
 

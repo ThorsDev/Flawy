@@ -17,6 +17,8 @@ namespace Flawy::Renderer
         uint32_t uTextureBindingBase = 0;
         uint32_t uSamplerBindingOffset = 0;
         SlangParameterCategory eUniformBlockCategory = SLANG_PARAMETER_CATEGORY_NONE;
+        SlangParameterCategory eTextureCategory = SLANG_PARAMETER_CATEGORY_NONE;
+        SlangParameterCategory eSamplerCategory = SLANG_PARAMETER_CATEGORY_NONE;
         bool bReflectionReportsUniformBlockBinding = true;
     };
 

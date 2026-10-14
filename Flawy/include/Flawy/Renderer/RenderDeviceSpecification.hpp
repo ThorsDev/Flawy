@@ -15,6 +15,5 @@ namespace Flawy::Renderer
         RendererBackend eBackend = RendererBackend::Default;
         bool bVSync = true;
         bool bDebug = false;
-        uint32_t uClearColorRgba = 0x303030ff;
     };
 }

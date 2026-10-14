@@ -6,6 +6,7 @@
 #include "Flawy/Platform/IWindowEventHandler.hpp"
 #include "Flawy/Platform/PlatformSystemFactory.hpp"
 #include "Flawy/Renderer/RenderDevice.hpp"
+#include "Flawy/Renderer/RenderGraph/RenderGraph.hpp"
 
 #include <chrono>
 #include <stdexcept>
@@ -77,6 +78,7 @@ namespace Flawy::Core
         std::unique_ptr<Platform::IPlatformSystem> upPlatform;
         std::unique_ptr<Platform::IWindow> upWindow;
         std::unique_ptr<Renderer::RenderDevice> upRenderDevice;
+        std::unique_ptr<Renderer::RenderGraph> upRenderGraph;
         WindowEventRouter oEventRouter;
         Clock::time_point tPreviousFrame;
     };
@@ -123,10 +125,12 @@ namespace Flawy::Core
         oDeviceSpecification.eBackend = oSpecification.eRendererBackend;
         oDeviceSpecification.bVSync = oSpecification.bVSync;
         auto upRenderDevice = std::make_unique<Renderer::RenderDevice>(oDeviceSpecification);
+        auto upRenderGraph = std::make_unique<Renderer::RenderGraph>(*upRenderDevice);
 
         m_upImpl->upPlatform = std::move(upPlatform);
         m_upImpl->upWindow = std::move(upWindow);
         m_upImpl->upRenderDevice = std::move(upRenderDevice);
+        m_upImpl->upRenderGraph = std::move(upRenderGraph);
         m_upImpl->bInitialized = true;
         m_upImpl->bRunning = true;
         m_upImpl->tPreviousFrame = Impl::Clock::now();
@@ -146,10 +150,11 @@ namespace Flawy::Core
 
         OnUpdate(m_upImpl->AdvanceClock());
 
-        Renderer::RenderDevice& oRenderDevice = *m_upImpl->upRenderDevice;
-        oRenderDevice.BeginFrame();
-        OnRender();
-        oRenderDevice.EndFrame();
+        Renderer::RenderGraph& oRenderGraph = *m_upImpl->upRenderGraph;
+        oRenderGraph.BeginFrame();
+        OnRender(oRenderGraph);
+        oRenderGraph.Execute();
+        m_upImpl->upRenderDevice->EndFrame();
     }
 
     void Application::Shutdown()
@@ -158,6 +163,7 @@ namespace Flawy::Core
 
         OnShutdown();
 
+        m_upImpl->upRenderGraph.reset();
         m_upImpl->upRenderDevice.reset();
         m_upImpl->upWindow.reset();
         m_upImpl->upPlatform.reset();
@@ -192,6 +198,12 @@ namespace Flawy::Core
         return *m_upImpl->upRenderDevice;
     }
 
+    Renderer::RenderGraph& Application::GetRenderGraph()
+    {
+        m_upImpl->RequireInitialized("GetRenderGraph");
+        return *m_upImpl->upRenderGraph;
+    }
+
     void Application::OnStart()
     {
     }
@@ -200,7 +212,7 @@ namespace Flawy::Core
     {
     }
 
-    void Application::OnRender()
+    void Application::OnRender(Renderer::RenderGraph&)
     {
     }
 

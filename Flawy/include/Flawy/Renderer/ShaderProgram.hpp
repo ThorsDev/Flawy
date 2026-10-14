@@ -1,8 +1,13 @@
 #pragma once
 
 #include "Flawy/Renderer/Shader/CompiledShader.hpp"
+#include "Flawy/Renderer/Shader/ShaderInterface.hpp"
 
+#include <cstdint>
 #include <memory>
+#include <optional>
+#include <span>
+#include <string_view>
 
 namespace Flawy::Renderer
 {
@@ -19,6 +24,8 @@ namespace Flawy::Renderer
         ShaderProgram(ShaderProgram&&) = delete;
         ShaderProgram& operator=(ShaderProgram&&) = delete;
 
+        [[nodiscard]] std::span<const ShaderUniform> GetUniforms() const noexcept;
+        [[nodiscard]] std::optional<uint32_t> FindUniform(std::string_view svName) const noexcept;
         [[nodiscard]] const Impl& GetImpl() const noexcept;
 
     private:

@@ -8,35 +8,78 @@
 
 namespace Flawy::Renderer
 {
-    VertexBuffer::VertexBuffer(std::span<const std::byte> spanData, const VertexLayout& oLayout)
+    namespace
+    {
+        uint32_t RequireVertexDataSize(std::span<const std::byte> spanData, uint32_t uStride)
+        {
+            if (spanData.empty() || spanData.size() % uStride != 0)
+            {
+                throw std::invalid_argument("Vertex data size must be a non-zero multiple of the vertex stride");
+            }
+            if (spanData.size() > std::numeric_limits<uint32_t>::max())
+            {
+                throw std::invalid_argument("Vertex data is too large");
+            }
+            return static_cast<uint32_t>(spanData.size());
+        }
+    }
+
+    VertexBuffer::VertexBuffer(std::span<const std::byte> spanData, const VertexLayout& oLayout, BufferUsage eUsage)
         : m_upImpl(std::make_unique<Impl>())
     {
         const bgfx::VertexLayout oBgfxLayout = BgfxVertexLayoutBuilder().Build(oLayout);
         const uint32_t uStride = oBgfxLayout.getStride();
+        const uint32_t uSize = RequireVertexDataSize(spanData, uStride);
+        const bgfx::Memory* pMemory = bgfx::copy(spanData.data(), uSize);
 
-        if (spanData.empty() || spanData.size() % uStride != 0)
+        bool bValid = false;
+        if (eUsage == BufferUsage::Dynamic)
         {
-            throw std::invalid_argument("Vertex data size must be a non-zero multiple of the vertex stride");
+            m_upImpl->hDynamic = bgfx::createDynamicVertexBuffer(pMemory, oBgfxLayout);
+            bValid = bgfx::isValid(m_upImpl->hDynamic);
         }
-        if (spanData.size() > std::numeric_limits<uint32_t>::max())
+        else
         {
-            throw std::invalid_argument("Vertex data is too large");
+            m_upImpl->hStatic = bgfx::createVertexBuffer(pMemory, oBgfxLayout);
+            bValid = bgfx::isValid(m_upImpl->hStatic);
         }
-
-        const auto uSize = static_cast<uint32_t>(spanData.size());
-        m_upImpl->hBuffer = bgfx::createVertexBuffer(bgfx::copy(spanData.data(), uSize), oBgfxLayout);
-        if (!bgfx::isValid(m_upImpl->hBuffer))
+        if (!bValid)
         {
             throw std::runtime_error("Failed to create vertex buffer");
         }
+
         m_upImpl->uVertexCount = uSize / uStride;
+        m_upImpl->uStride = uStride;
+        m_upImpl->eUsage = eUsage;
     }
 
     VertexBuffer::~VertexBuffer() = default;
 
+    void VertexBuffer::Update(uint32_t uFirstVertex, std::span<const std::byte> spanData)
+    {
+        if (m_upImpl->eUsage != BufferUsage::Dynamic)
+        {
+            throw std::logic_error("Only dynamic vertex buffers can be updated");
+        }
+
+        const uint32_t uSize = RequireVertexDataSize(spanData, m_upImpl->uStride);
+        const uint32_t uVertexCount = uSize / m_upImpl->uStride;
+        if (uFirstVertex > m_upImpl->uVertexCount || uVertexCount > m_upImpl->uVertexCount - uFirstVertex)
+        {
+            throw std::invalid_argument("Vertex buffer update exceeds the buffer size");
+        }
+
+        bgfx::update(m_upImpl->hDynamic, uFirstVertex, bgfx::copy(spanData.data(), uSize));
+    }
+
     uint32_t VertexBuffer::GetVertexCount() const noexcept
     {
         return m_upImpl->uVertexCount;
+    }
+
+    BufferUsage VertexBuffer::GetUsage() const noexcept
+    {
+        return m_upImpl->eUsage;
     }
 
     const VertexBuffer::Impl& VertexBuffer::GetImpl() const noexcept
