@@ -3,7 +3,9 @@
 #include "Flawy/Platform/WindowSpecification.hpp"
 #include "Flawy/Renderer/RendererBackend.hpp"
 
+#include <filesystem>
 #include <memory>
+#include <optional>
 #include <string>
 
 namespace Flawy::Platform
@@ -15,6 +17,7 @@ namespace Flawy::Renderer
 {
     class RenderDevice;
     class RenderGraph;
+    class MaterialSystem;
 }
 
 namespace Flawy::Core
@@ -25,6 +28,7 @@ namespace Flawy::Core
         Platform::WindowSpecification oWindow;
         Renderer::RendererBackend eRendererBackend = Renderer::RendererBackend::Default;
         bool bVSync = true;
+        std::optional<std::filesystem::path> optShaderCacheDirectory;
     };
 
     class Application
@@ -49,6 +53,7 @@ namespace Flawy::Core
         [[nodiscard]] Platform::IWindow& GetWindow();
         [[nodiscard]] Renderer::RenderDevice& GetRenderDevice();
         [[nodiscard]] Renderer::RenderGraph& GetRenderGraph();
+        [[nodiscard]] Renderer::MaterialSystem& GetMaterialSystem();
 
     protected:
         virtual void OnStart();

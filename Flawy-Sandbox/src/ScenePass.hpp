@@ -4,8 +4,6 @@
 
 #include <Flawy/Flawy.hpp>
 
-#include <glm/mat4x4.hpp>
-
 namespace Sandbox
 {
     class ScenePass final : public Flawy::Renderer::IRenderPass
@@ -14,7 +12,7 @@ namespace Sandbox
         explicit ScenePass(const SceneResources& oResources) noexcept;
 
         void SetTarget(Flawy::Renderer::RenderGraphResource oTarget) noexcept;
-        void SetModelMatrix(const glm::mat4& matModel) noexcept;
+        void SetTimeSeconds(float fTimeSeconds) noexcept;
 
         void Setup(Flawy::Renderer::RenderPassBuilder& oBuilder) override;
         void Execute(Flawy::Renderer::RenderPassContext& oContext) override;
@@ -22,6 +20,6 @@ namespace Sandbox
     private:
         const SceneResources& m_oResources;
         Flawy::Renderer::RenderGraphResource m_oTarget;
-        glm::mat4 m_matModel{1.0f};
+        float m_fTimeSeconds = 0.0f;
     };
 }

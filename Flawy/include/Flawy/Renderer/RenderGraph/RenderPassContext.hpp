@@ -12,6 +12,8 @@
 namespace Flawy::Renderer
 {
     class Texture;
+    struct LightEnvironment;
+    struct ViewParameters;
 
     class RenderPassContext final
     {
@@ -23,6 +25,8 @@ namespace Flawy::Renderer
         ~RenderPassContext() = default;
 
         void SetViewTransform(const glm::mat4& matView, const glm::mat4& matProjection);
+        void SetView(const ViewParameters& oView);
+        void SetLights(const LightEnvironment& oLights);
         void Draw(const DrawCommand& oCommand);
 
         [[nodiscard]] const Texture& GetTexture(RenderGraphResource oTarget) const;

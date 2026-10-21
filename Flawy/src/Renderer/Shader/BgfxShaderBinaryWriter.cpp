@@ -14,7 +14,6 @@ namespace Flawy::Renderer
 {
     namespace
     {
-        constexpr uint8_t kShaderBinaryVersion = 12;
         constexpr uint8_t kFragmentUniformFlag = 0x10;
         constexpr uint8_t kSamplerUniformFlag = 0x20;
 
@@ -31,11 +30,11 @@ namespace Flawy::Renderer
             switch (eStage)
             {
             case ShaderStage::Vertex:
-                return MakeFourCc('V', 'S', 'H', kShaderBinaryVersion);
+                return MakeFourCc('V', 'S', 'H', BgfxShaderBinaryWriter::kFormatVersion);
             case ShaderStage::Fragment:
-                return MakeFourCc('F', 'S', 'H', kShaderBinaryVersion);
+                return MakeFourCc('F', 'S', 'H', BgfxShaderBinaryWriter::kFormatVersion);
             case ShaderStage::Compute:
-                return MakeFourCc('C', 'S', 'H', kShaderBinaryVersion);
+                return MakeFourCc('C', 'S', 'H', BgfxShaderBinaryWriter::kFormatVersion);
             }
             return 0;
         }

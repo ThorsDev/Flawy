@@ -53,6 +53,7 @@ namespace Flawy::Renderer
         uint32_t uVertexCount = 0;
         uint32_t uStride = 0;
         BufferUsage eUsage = BufferUsage::Static;
+        VertexLayout oLayout;
     };
 
     struct IndexBuffer::Impl
@@ -97,6 +98,7 @@ namespace Flawy::Renderer
         TextureFormat eFormat = TextureFormat::Rgba8;
         SamplerState oSampler;
         bool bRenderTarget = false;
+        bool bSrgb = false;
     };
 
     struct RenderTarget::Impl

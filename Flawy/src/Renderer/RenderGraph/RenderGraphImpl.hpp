@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Flawy/Renderer/Material/MaterialPass.hpp"
 #include "Flawy/Renderer/RenderGraph/RenderGraph.hpp"
 #include "Flawy/Renderer/RenderGraph/RenderGraphResource.hpp"
 #include "Flawy/Renderer/RenderGraph/RenderPassBuilder.hpp"
@@ -7,6 +8,7 @@
 #include "Flawy/Renderer/RenderGraph/RenderPassContext.hpp"
 #include "Flawy/Renderer/RenderTarget.hpp"
 #include "Renderer/RenderGraph/RenderTargetPool.hpp"
+#include "Renderer/RenderGraph/ViewUniformSet.hpp"
 
 #include <array>
 #include <cstddef>
@@ -50,13 +52,14 @@ namespace Flawy::Renderer
             uint32_t uReadBegin = 0;
             uint32_t uReadCount = 0;
             bool bAlwaysExecute = false;
+            MaterialPass eMaterialPass = MaterialPass::Forward;
             bool bLive = false;
             uint16_t uViewId = 0;
 
             [[nodiscard]] std::string_view GetName() const noexcept;
         };
 
-        explicit Impl(RenderDevice& oRenderDevice) noexcept;
+        explicit Impl(RenderDevice& oRenderDevice);
 
         Impl(const Impl&) = delete;
         Impl& operator=(const Impl&) = delete;
@@ -89,6 +92,7 @@ namespace Flawy::Renderer
 
         RenderDevice& oDevice;
         RenderTargetPool oPool;
+        ViewUniformSet oViewUniforms;
         std::vector<PassRecord> vPasses;
         std::vector<RenderGraphResource> vReads;
         std::vector<ResourceRecord> vResources;

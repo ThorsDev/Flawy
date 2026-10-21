@@ -56,6 +56,12 @@ namespace Flawy::Renderer
         m_oGraph.vPasses[uPassIndex].bAlwaysExecute = bAlwaysExecute;
     }
 
+    void RenderPassBuilder::SetMaterialPass(MaterialPass ePass)
+    {
+        const uint16_t uPassIndex = m_oGraph.RequireSetupPass("SetMaterialPass");
+        m_oGraph.vPasses[uPassIndex].eMaterialPass = ePass;
+    }
+
     RenderGraphResource RenderPassBuilder::GetBackbuffer() const
     {
         static_cast<void>(m_oGraph.RequireSetupPass("GetBackbuffer"));

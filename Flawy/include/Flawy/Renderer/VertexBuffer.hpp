@@ -27,6 +27,7 @@ namespace Flawy::Renderer
 
         [[nodiscard]] uint32_t GetVertexCount() const noexcept;
         [[nodiscard]] BufferUsage GetUsage() const noexcept;
+        [[nodiscard]] const VertexLayout& GetLayout() const noexcept;
         [[nodiscard]] const Impl& GetImpl() const noexcept;
 
     private:

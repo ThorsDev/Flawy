@@ -45,6 +45,7 @@ target_link_libraries(Flawy
         Jolt
         Tracy::TracyClient
         Slang::slang
+        simdjson::simdjson
 )
 
 flawy_configure_target(Flawy)

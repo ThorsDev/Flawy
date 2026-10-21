@@ -51,6 +51,7 @@ namespace Flawy::Renderer
         m_upImpl->uVertexCount = uSize / uStride;
         m_upImpl->uStride = uStride;
         m_upImpl->eUsage = eUsage;
+        m_upImpl->oLayout = oLayout;
     }
 
     VertexBuffer::~VertexBuffer() = default;
@@ -80,6 +81,11 @@ namespace Flawy::Renderer
     BufferUsage VertexBuffer::GetUsage() const noexcept
     {
         return m_upImpl->eUsage;
+    }
+
+    const VertexLayout& VertexBuffer::GetLayout() const noexcept
+    {
+        return m_upImpl->oLayout;
     }
 
     const VertexBuffer::Impl& VertexBuffer::GetImpl() const noexcept

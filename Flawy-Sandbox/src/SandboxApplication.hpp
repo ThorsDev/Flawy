@@ -1,5 +1,6 @@
 #pragma once
 
+#include "DepthPrePass.hpp"
 #include "PostProcessPass.hpp"
 #include "PostProcessResources.hpp"
 #include "SceneResources.hpp"
@@ -18,6 +19,7 @@ namespace Sandbox
         Flawy::Renderer::RendererBackend eBackend = Flawy::Renderer::RendererBackend::Default;
         uint32_t uFrameLimit = 0;
         std::optional<std::filesystem::path> optScreenshotPath;
+        std::optional<std::filesystem::path> optShaderCacheDirectory;
     };
 
     class SandboxApplication final : public Flawy::Core::Application
@@ -32,14 +34,14 @@ namespace Sandbox
         void OnShutdown() override;
 
     private:
-        void CreateCube(Flawy::Renderer::ShaderCompiler& oCompiler);
-        void CreatePostProcess(Flawy::Renderer::ShaderCompiler& oCompiler);
         [[nodiscard]] uint32_t GetScreenshotFrame() const noexcept;
+        void LogShaderCacheStatistics();
 
         SandboxOptions m_oOptions;
         uint32_t m_uFrameIndex = 0;
         double m_dElapsedSeconds = 0.0;
         SceneResources m_oScene;
+        DepthPrePass m_oDepthPrePass;
         ScenePass m_oScenePass;
         PostProcessResources m_oPostProcess;
         PostProcessPass m_oPostProcessPass;

@@ -25,11 +25,21 @@ VertexOutput VertexMain(VertexInput oInput)
     return oOutput;
 }
 
+static const float kDisplayGamma = 2.2;
+
+float3 TonemapAcesFitted(float3 vecColor)
+{
+    float3 vecNumerator = vecColor * (2.51 * vecColor + 0.03);
+    float3 vecDenominator = vecColor * (2.43 * vecColor + 0.59) + 0.14;
+    return saturate(vecNumerator / vecDenominator);
+}
+
 [shader("fragment")]
 float4 FragmentMain(VertexOutput oInput) : SV_Target0
 {
     float4 vecColor = FLAWY_SAMPLE2D(s_texColor, oInput.texCoord);
+    float3 vecDisplay = pow(TonemapAcesFitted(vecColor.rgb), 1.0 / kDisplayGamma);
     float2 vecOffset = oInput.texCoord - 0.5;
     float fVignette = 1.0 - u_tint.a * dot(vecOffset, vecOffset) * 4.0;
-    return float4(vecColor.rgb * u_tint.rgb * fVignette, vecColor.a);
+    return float4(vecDisplay * u_tint.rgb * fVignette, vecColor.a);
 }

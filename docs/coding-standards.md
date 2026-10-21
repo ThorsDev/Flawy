@@ -70,6 +70,7 @@ Every variable, parameter and data member uses a type prefix. The scope prefix (
 | `span` | `std::span` | `spanVertices` |
 | `map` | `std::map` / `std::unordered_map` | `mapTextures` |
 | `set` | `std::set` / `std::unordered_set` | `setVisited` |
+| `it` | iterators | `itRecord` |
 | `fn` | callables (`std::function`, lambdas, function pointers) | `fnCallback` |
 | `t` | `std::chrono` time points and durations | `tFrameStart` |
 | `vec`, `mat`, `quat` | GLM vectors, matrices and quaternions | `vecPosition`, `matView` |

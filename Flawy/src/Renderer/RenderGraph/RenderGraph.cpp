@@ -64,7 +64,7 @@ namespace Flawy::Renderer
         return aName.data();
     }
 
-    RenderGraph::Impl::Impl(RenderDevice& oRenderDevice) noexcept
+    RenderGraph::Impl::Impl(RenderDevice& oRenderDevice)
         : oDevice(oRenderDevice)
         , oBuilder(*this)
         , oContext(*this)
@@ -350,6 +350,7 @@ namespace Flawy::Renderer
 
             bBackbufferWritten = bBackbufferWritten || oPass.oWrite == oBackbuffer;
             PrepareView(oPass);
+            oViewUniforms.Reset();
             const ActivePassScope oScope(uActiveExecutePass, uPass);
             oPass.pPass->Execute(oContext);
         }

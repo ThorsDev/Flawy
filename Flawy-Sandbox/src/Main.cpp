@@ -15,6 +15,7 @@ namespace
     constexpr std::string_view kRendererOption = "--renderer=";
     constexpr std::string_view kFramesOption = "--frames=";
     constexpr std::string_view kScreenshotOption = "--screenshot=";
+    constexpr std::string_view kShaderCacheOption = "--shader-cache=";
 
     Flawy::Renderer::RendererBackend ParseRendererName(std::string_view svName)
     {
@@ -67,6 +68,15 @@ namespace
                     throw std::invalid_argument("--screenshot requires a file path");
                 }
                 oOptions.optScreenshotPath = std::filesystem::path(svPath);
+            }
+            else if (svArgument.starts_with(kShaderCacheOption))
+            {
+                const std::string_view svPath = svArgument.substr(kShaderCacheOption.size());
+                if (svPath.empty())
+                {
+                    throw std::invalid_argument("--shader-cache requires a directory path");
+                }
+                oOptions.optShaderCacheDirectory = std::filesystem::path(svPath);
             }
         }
         return oOptions;

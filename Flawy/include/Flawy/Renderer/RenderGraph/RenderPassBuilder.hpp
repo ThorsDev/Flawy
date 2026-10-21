@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Flawy/Renderer/Material/MaterialPass.hpp"
 #include "Flawy/Renderer/RenderGraph/RenderGraph.hpp"
 #include "Flawy/Renderer/RenderGraph/RenderGraphResource.hpp"
 #include "Flawy/Renderer/RenderGraph/RenderPassClear.hpp"
@@ -23,6 +24,7 @@ namespace Flawy::Renderer
         void WriteTarget(RenderGraphResource oTarget, const RenderPassClear& oClear);
         void ReadTexture(RenderGraphResource oTarget);
         void SetAlwaysExecute(bool bAlwaysExecute);
+        void SetMaterialPass(MaterialPass ePass);
         [[nodiscard]] RenderGraphResource GetBackbuffer() const;
         [[nodiscard]] RenderGraphResource CreateTransientTarget(const RenderTargetDescriptor& oDescriptor);
 

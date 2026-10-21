@@ -18,6 +18,7 @@ namespace Flawy::Renderer
         TextureFormat eFormat = TextureFormat::Rgba8;
         SamplerState oSampler;
         bool bRenderTarget = false;
+        bool bSrgb = false;
         std::string sDebugName;
     };
 
@@ -40,6 +41,7 @@ namespace Flawy::Renderer
         [[nodiscard]] TextureFormat GetFormat() const noexcept;
         [[nodiscard]] const SamplerState& GetSampler() const noexcept;
         [[nodiscard]] bool IsRenderTarget() const noexcept;
+        [[nodiscard]] bool IsSrgb() const noexcept;
         [[nodiscard]] const Impl& GetImpl() const noexcept;
 
     private:

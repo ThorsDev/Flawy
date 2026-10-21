@@ -1,8 +1,7 @@
 #include "ScenePass.hpp"
 
-#include <glm/ext/matrix_clip_space.hpp>
-#include <glm/ext/matrix_transform.hpp>
-#include <glm/trigonometric.hpp>
+#include "SceneDrawer.hpp"
+
 #include <glm/vec3.hpp>
 
 #include <cstdint>
@@ -13,11 +12,26 @@ namespace Sandbox
     namespace
     {
         constexpr std::string_view kPassName = "Scene";
-        constexpr uint32_t kClearColorRgba = 0x202840ffu;
-        constexpr glm::vec3 kCameraPosition = {0.0f, 1.2f, 2.6f};
-        constexpr float kFieldOfViewDegrees = 60.0f;
-        constexpr float kNearPlane = 0.1f;
-        constexpr float kFarPlane = 100.0f;
+        constexpr uint32_t kClearColorRgba = 0x0a0d14ffu;
+        constexpr glm::vec3 kSunDirection = {-0.5f, -1.0f, -0.3f};
+        constexpr float kSunIntensity = 1.75f;
+        constexpr float kPointLightRadius = 4.0f;
+        constexpr float kPointLightIntensity = 15.0f;
+        constexpr glm::vec3 kRedLightPosition = {1.4f, 0.2f, -0.15f};
+        constexpr glm::vec3 kBlueLightPosition = {-1.5f, 0.3f, 1.0f};
+        constexpr glm::vec3 kSkyAmbient = {0.25f, 0.3f, 0.4f};
+        constexpr glm::vec3 kGroundAmbient = {0.08f, 0.06f, 0.05f};
+
+        Flawy::Renderer::LightEnvironment BuildLights()
+        {
+            Flawy::Renderer::LightEnvironment oLights;
+            oLights.optDirectional = Flawy::Renderer::DirectionalLight{kSunDirection, glm::vec3(1.0f), kSunIntensity};
+            oLights.vPointLights.push_back({kRedLightPosition, kPointLightRadius, glm::vec3(1.0f, 0.1f, 0.05f), kPointLightIntensity});
+            oLights.vPointLights.push_back({kBlueLightPosition, kPointLightRadius, glm::vec3(0.1f, 0.25f, 1.0f), kPointLightIntensity});
+            oLights.vecSkyAmbient = kSkyAmbient;
+            oLights.vecGroundAmbient = kGroundAmbient;
+            return oLights;
+        }
     }
 
     ScenePass::ScenePass(const SceneResources& oResources) noexcept
@@ -30,34 +44,30 @@ namespace Sandbox
         m_oTarget = oTarget;
     }
 
-    void ScenePass::SetModelMatrix(const glm::mat4& matModel) noexcept
+    void ScenePass::SetTimeSeconds(float fTimeSeconds) noexcept
     {
-        m_matModel = matModel;
+        m_fTimeSeconds = fTimeSeconds;
     }
 
     void ScenePass::Setup(Flawy::Renderer::RenderPassBuilder& oBuilder)
     {
-        Flawy::Renderer::RenderPassClear oClear;
+        Flawy::Renderer::RenderPassClear oClear = Flawy::Renderer::RenderPassClear::None();
+        oClear.bClearColor = true;
         oClear.uColorRgba = kClearColorRgba;
-        oClear.bClearStencil = true;
 
         oBuilder.SetName(kPassName);
+        oBuilder.SetMaterialPass(Flawy::Renderer::MaterialPass::Forward);
         oBuilder.WriteTarget(m_oTarget, oClear);
     }
 
     void ScenePass::Execute(Flawy::Renderer::RenderPassContext& oContext)
     {
-        const float fAspect = static_cast<float>(oContext.GetTargetWidth()) / static_cast<float>(oContext.GetTargetHeight());
-        const glm::mat4 matView = glm::lookAtRH(kCameraPosition, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-        const glm::mat4 matProjection = glm::perspectiveRH_ZO(glm::radians(kFieldOfViewDegrees), fAspect, kNearPlane, kFarPlane);
-        oContext.SetViewTransform(matView, matProjection);
+        SceneDrawer::ApplyView(oContext, m_fTimeSeconds);
+        oContext.SetLights(BuildLights());
 
-        Flawy::Renderer::DrawCommand oCommand;
-        oCommand.pVertexBuffer = m_oResources.upVertexBuffer.get();
-        oCommand.pIndexBuffer = m_oResources.upIndexBuffer.get();
-        oCommand.pProgram = m_oResources.upProgram.get();
-        oCommand.pParameters = m_oResources.upParameters.get();
-        oCommand.matModel = m_matModel;
-        oContext.Draw(oCommand);
+        Flawy::Renderer::RenderState oState;
+        oState.eDepthTest = Flawy::Renderer::DepthTest::LessEqual;
+        oState.bDepthWrite = false;
+        SceneDrawer::DrawMeshes(oContext, m_oResources, m_fTimeSeconds, oState);
     }
 }

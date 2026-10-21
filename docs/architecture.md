@@ -49,13 +49,13 @@ Minden modul saját namespace-t és almappát kap:
 
 A modulok közti függőség egy irányba mutat: a Core-ra mindenki építhet, a Core viszont semmire. A harmadik féltől származó típusok lehetőleg ne szivárogjanak ki a publikus headerekbe. Ha mégis kell, a könyvtárat `PUBLIC`-ként kell linkelni.
 
-**Kivétel: `Core::Application` a composition root.** Ez az egyetlen hely a Core-ban, amely a Platform és a Renderer modulra építhet: létrehozza az `IPlatformSystem`-et, az `IWindow`-t, a `RenderDevice`-t és a `RenderGraph`-ot, majd fordított sorrendben bontja le őket. A Core többi része (Logger, BuildInfo, ...) továbbra is függőségmentes.
+**Kivétel: `Core::Application` a composition root.** Ez az egyetlen hely a Core-ban, amely a Platform és a Renderer modulra építhet: létrehozza az `IPlatformSystem`-et, az `IWindow`-t, a `RenderDevice`-t, a `MaterialSystem`-et és a `RenderGraph`-ot, majd fordított sorrendben bontja le őket. A Core többi része (Logger, BuildInfo, ...) továbbra is függőségmentes.
 
 ### Application életciklus
 
-- `Initialize()`: platform → ablak → `RenderDevice` (az ablak pixelméretével) → `RenderGraph`, majd `OnStart()`. Másodszori hívása no-op.
+- `Initialize()`: platform → ablak → `RenderDevice` (az ablak pixelméretével) → `MaterialSystem` (az `ApplicationSpecification::optShaderCacheDirectory`-val mint lemezes shader cache könyvtárral) → `RenderGraph`, majd `OnStart()`. Másodszori hívása no-op.
 - `Tick()`: eventek feldolgozása (bezárás → kilépés, méretváltozás → `RenderDevice::Resize`), `OnUpdate(dt)`, `RenderGraph::BeginFrame()`, `OnRender(RenderGraph&)`, `RenderGraph::Execute()`, `RenderDevice::EndFrame()` (`bgfx::frame()`).
-- `Shutdown()`: `OnShutdown()`, majd a `RenderGraph` (a transient target poollal együtt), a renderer, az ablak és a platform lebontása. A bgfx handle-öket burkoló alosztály-erőforrásokat (bufferek, textúrák, `RenderTarget`-ek, `ShaderParameters`) az `OnShutdown()`-ban kell felszabadítani.
+- `Shutdown()`: `OnShutdown()`, majd a `RenderGraph` (a transient target poollal együtt), a `MaterialSystem`, a renderer, az ablak és a platform lebontása. A bgfx handle-öket burkoló alosztály-erőforrásokat (bufferek, textúrák, `RenderTarget`-ek, `ShaderParameters`, `Material`-ok és `MaterialInstance`-ok) az `OnShutdown()`-ban kell felszabadítani.
 - `Run()` = `Initialize()` + `Tick()` ciklus amíg fut + `Shutdown()`. A `Tick()` és a `Shutdown()` `Initialize()` előtt `std::logic_error`-t dob.
 - A bgfx egyszálú módban fut: a `RenderDevice` az `bgfx::init()` előtt egyszer meghívja a `bgfx::renderFrame()`-et a fő szálon.
 
@@ -63,7 +63,7 @@ A modulok közti függőség egy irányba mutat: a Core-ra mindenki építhet, a
 
 A host nem lát bgfx view id-t: minden rajzolás egy `IRenderPass`-on keresztül megy, amit az `OnRender(RenderGraph&)` minden frame-ben hozzáad a graph-hoz.
 
-- **Passok:** az `IRenderPass` tartós objektum. A `RenderGraph::AddPass` azonnal meghívja a `Setup(RenderPassBuilder&)`-et, ahol a pass deklarálja, mit ír (`WriteTarget`, pontosan egy target, `RenderPassClear`-rel) és mit olvas (`ReadTexture`). Az `Execute(RenderPassContext&)` a `RenderGraph::Execute()` alatt fut; itt a pass a `SetViewTransform`-mal és a `Draw(DrawCommand)`-dal rajzol, a deklarált olvasásokat a `GetTexture`-rel éri el.
+- **Passok:** az `IRenderPass` tartós objektum. A `RenderGraph::AddPass` azonnal meghívja a `Setup(RenderPassBuilder&)`-et, ahol a pass deklarálja, mit ír (`WriteTarget`, pontosan egy target, `RenderPassClear`-rel) és mit olvas (`ReadTexture`). Az `Execute(RenderPassContext&)` a `RenderGraph::Execute()` alatt fut; itt a pass a `SetViewTransform`-mal és a `Draw(DrawCommand)`-dal rajzol, a deklarált olvasásokat a `GetTexture`-rel éri el. A `SetView` / `SetLights` a pass nézet- és fényadatait állítja (passonként nullázódnak). A `Setup`-ban a `SetMaterialPass` választja ki, melyik anyag-pass permutációval rajzolnak a pass anyagos `DrawCommand`-jai (alapértelmezés `MaterialPass::Forward`; lásd [shaders.md](shaders.md)).
 - **Erőforrások:** a backbuffer (`GetBackbuffer()`), importált `RenderTarget`-ek (`ImportTarget`, a felhasználó birtokolja és méretezi, pl. egy editor viewport) és transient targetek (`CreateTransientTarget`, a graph poolja adja). A `RenderTargetDescriptor` 0-s szélessége/magassága a backbuffer méretét jelenti.
 - **Handle-ök érvényessége:** a `RenderGraphResource` egy frame-sorszámot (generációt) hordoz. Az importált és transient handle-ök csak abban a frame-ben érvényesek, amelyben létrejöttek; egy korábbi frame handle-je `std::logic_error`-t ad. A backbuffer handle stabil generációjú (`kPersistentGeneration`), ezért frame-ek között is használható.
 - **Builder és context élettartama:** a `RenderPassBuilder` csak a saját `Setup`-ján, a `RenderPassContext` csak a saját `Execute`-ján belül használható; máskor (megtartott referenciával) `std::logic_error`-t dobnak. Az `AddPass` `Setup`-ból vagy `Execute`-ból hívva szintén `std::logic_error`. Korlát: a builder és a context graph-onként egyetlen közös objektum, ezért egy megtartott referencia egy másik pass `Setup`-ja / `Execute`-ja alatt használva azon a passon hat, és ezt a graph nem ismeri fel.
@@ -78,7 +78,7 @@ A host nem lát bgfx view id-t: minden rajzolás egy `IRenderPass`-on keresztül
 | Láthatóság | Könyvtárak | Miért |
 |---|---|---|
 | `PUBLIC` | GLM, EnTT, spdlog, Dear ImGui | a publikus API-ban is megjelenhetnek (matek típusok, registry, logger, debug UI egy editorhoz) |
-| `PRIVATE` | SDL3, bgfx (bx, bimg), miniaudio, fastgltf, AngelScript, Jolt, Tracy | implementációs részlet, csak az engine `.cpp` fájljai látják |
+| `PRIVATE` | SDL3, bgfx (bx, bimg), miniaudio, fastgltf, simdjson, AngelScript, Jolt, Tracy, Slang | implementációs részlet, csak az engine `.cpp` fájljai látják |
 
 Mivel a lib statikus, a `PRIVATE` függőségek is automatikusan belinkelődnek a fogyasztóba, így a host oldalon nincs vele teendő.
 

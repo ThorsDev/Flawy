@@ -50,6 +50,10 @@ namespace Flawy::Renderer
             {
                 uFlags |= TextureFormatTraits::IsDepth(oDescriptor.eFormat) ? BGFX_TEXTURE_RT_WRITE_ONLY : BGFX_TEXTURE_RT;
             }
+            if (oDescriptor.bSrgb)
+            {
+                uFlags |= BGFX_TEXTURE_SRGB;
+            }
             return uFlags;
         }
 
@@ -80,6 +84,7 @@ namespace Flawy::Renderer
             oImpl.eFormat = oDescriptor.eFormat;
             oImpl.oSampler = oDescriptor.oSampler;
             oImpl.bRenderTarget = oDescriptor.bRenderTarget;
+            oImpl.bSrgb = oDescriptor.bSrgb;
         }
     }
 
@@ -121,6 +126,11 @@ namespace Flawy::Renderer
     bool Texture::IsRenderTarget() const noexcept
     {
         return m_upImpl->bRenderTarget;
+    }
+
+    bool Texture::IsSrgb() const noexcept
+    {
+        return m_upImpl->bSrgb;
     }
 
     const Texture::Impl& Texture::GetImpl() const noexcept

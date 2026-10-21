@@ -5,6 +5,7 @@
 #include "Flawy/Platform/IWindow.hpp"
 #include "Flawy/Platform/IWindowEventHandler.hpp"
 #include "Flawy/Platform/PlatformSystemFactory.hpp"
+#include "Flawy/Renderer/Material/MaterialSystem.hpp"
 #include "Flawy/Renderer/RenderDevice.hpp"
 #include "Flawy/Renderer/RenderGraph/RenderGraph.hpp"
 
@@ -78,6 +79,7 @@ namespace Flawy::Core
         std::unique_ptr<Platform::IPlatformSystem> upPlatform;
         std::unique_ptr<Platform::IWindow> upWindow;
         std::unique_ptr<Renderer::RenderDevice> upRenderDevice;
+        std::unique_ptr<Renderer::MaterialSystem> upMaterialSystem;
         std::unique_ptr<Renderer::RenderGraph> upRenderGraph;
         WindowEventRouter oEventRouter;
         Clock::time_point tPreviousFrame;
@@ -125,11 +127,15 @@ namespace Flawy::Core
         oDeviceSpecification.eBackend = oSpecification.eRendererBackend;
         oDeviceSpecification.bVSync = oSpecification.bVSync;
         auto upRenderDevice = std::make_unique<Renderer::RenderDevice>(oDeviceSpecification);
+        Renderer::MaterialSystemSpecification oMaterialSpecification;
+        oMaterialSpecification.optShaderCacheDirectory = oSpecification.optShaderCacheDirectory;
+        auto upMaterialSystem = std::make_unique<Renderer::MaterialSystem>(*upRenderDevice, oMaterialSpecification);
         auto upRenderGraph = std::make_unique<Renderer::RenderGraph>(*upRenderDevice);
 
         m_upImpl->upPlatform = std::move(upPlatform);
         m_upImpl->upWindow = std::move(upWindow);
         m_upImpl->upRenderDevice = std::move(upRenderDevice);
+        m_upImpl->upMaterialSystem = std::move(upMaterialSystem);
         m_upImpl->upRenderGraph = std::move(upRenderGraph);
         m_upImpl->bInitialized = true;
         m_upImpl->bRunning = true;
@@ -164,6 +170,7 @@ namespace Flawy::Core
         OnShutdown();
 
         m_upImpl->upRenderGraph.reset();
+        m_upImpl->upMaterialSystem.reset();
         m_upImpl->upRenderDevice.reset();
         m_upImpl->upWindow.reset();
         m_upImpl->upPlatform.reset();
@@ -202,6 +209,12 @@ namespace Flawy::Core
     {
         m_upImpl->RequireInitialized("GetRenderGraph");
         return *m_upImpl->upRenderGraph;
+    }
+
+    Renderer::MaterialSystem& Application::GetMaterialSystem()
+    {
+        m_upImpl->RequireInitialized("GetMaterialSystem");
+        return *m_upImpl->upMaterialSystem;
     }
 
     void Application::OnStart()

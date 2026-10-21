@@ -10,6 +10,7 @@ namespace Flawy::Renderer
     class IndexBuffer;
     class ShaderProgram;
     class ShaderParameters;
+    class MaterialInstance;
 
     struct DrawCommand
     {
@@ -17,6 +18,7 @@ namespace Flawy::Renderer
         const IndexBuffer* pIndexBuffer = nullptr;
         const ShaderProgram* pProgram = nullptr;
         const ShaderParameters* pParameters = nullptr;
+        const MaterialInstance* pMaterial = nullptr;
         RenderState oState;
         glm::mat4 matModel{1.0f};
     };
