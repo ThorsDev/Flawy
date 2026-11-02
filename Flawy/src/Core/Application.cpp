@@ -1,6 +1,12 @@
 #include "Flawy/Core/Application.hpp"
 
+#include "Animation/AnimationClipLoader.hpp"
+#include "Animation/AnimationControllerLoader.hpp"
+#include "Animation/SkeletonLoader.hpp"
+#include "Assets/StaticMeshLoader.hpp"
+#include "Flawy/Assets/AssetManager.hpp"
 #include "Flawy/Core/Logger.hpp"
+#include "Flawy/Import/ModelImporterFactory.hpp"
 #include "Flawy/Platform/IPlatformSystem.hpp"
 #include "Flawy/Platform/IWindow.hpp"
 #include "Flawy/Platform/IWindowEventHandler.hpp"
@@ -66,6 +72,17 @@ namespace Flawy::Core
             }
         }
 
+        static void RegisterEngineAssetLoaders(Assets::AssetManager& oAssetManager)
+        {
+            oAssetManager.RegisterLoader(std::make_unique<Assets::StaticMeshLoader>());
+            oAssetManager.RegisterLoader(std::make_unique<Animation::SkeletonLoader>());
+            oAssetManager.RegisterLoader(std::make_unique<Animation::AnimationClipLoader>());
+            oAssetManager.RegisterLoader(std::make_unique<Animation::AnimationControllerLoader>());
+            oAssetManager.RegisterImporter(Import::ModelImporterFactory::CreateGltfImporter());
+            oAssetManager.RegisterImporter(Import::ModelImporterFactory::CreateFbxImporter());
+            oAssetManager.RegisterImporter(Import::ModelImporterFactory::CreateObjImporter());
+        }
+
         [[nodiscard]] double AdvanceClock()
         {
             const Clock::time_point tNow = Clock::now();
@@ -82,6 +99,7 @@ namespace Flawy::Core
         std::unique_ptr<Renderer::RenderDevice> upRenderDevice;
         std::unique_ptr<Renderer::MaterialSystem> upMaterialSystem;
         std::unique_ptr<Renderer::ShaderLibrary> upShaderLibrary;
+        std::unique_ptr<Assets::AssetManager> upAssetManager;
         std::unique_ptr<Renderer::RenderGraph> upRenderGraph;
         WindowEventRouter oEventRouter;
         Clock::time_point tPreviousFrame;
@@ -135,6 +153,10 @@ namespace Flawy::Core
         Renderer::ShaderLibrarySpecification oLibrarySpecification;
         oLibrarySpecification.vSearchRoots = oSpecification.vShaderSearchRoots;
         auto upShaderLibrary = std::make_unique<Renderer::ShaderLibrary>(upMaterialSystem->GetCompiler(), upMaterialSystem->GetShaderCache(), oLibrarySpecification);
+        Assets::AssetManagerSpecification oAssetSpecification;
+        oAssetSpecification.optAssetRoot = oSpecification.optAssetRoot;
+        auto upAssetManager = std::make_unique<Assets::AssetManager>(oAssetSpecification);
+        Impl::RegisterEngineAssetLoaders(*upAssetManager);
         auto upRenderGraph = std::make_unique<Renderer::RenderGraph>(*upRenderDevice);
 
         m_upImpl->upPlatform = std::move(upPlatform);
@@ -142,6 +164,7 @@ namespace Flawy::Core
         m_upImpl->upRenderDevice = std::move(upRenderDevice);
         m_upImpl->upMaterialSystem = std::move(upMaterialSystem);
         m_upImpl->upShaderLibrary = std::move(upShaderLibrary);
+        m_upImpl->upAssetManager = std::move(upAssetManager);
         m_upImpl->upRenderGraph = std::move(upRenderGraph);
         m_upImpl->bInitialized = true;
         m_upImpl->bRunning = true;
@@ -175,6 +198,7 @@ namespace Flawy::Core
 
         OnShutdown();
 
+        m_upImpl->upAssetManager.reset();
         m_upImpl->upRenderGraph.reset();
         m_upImpl->upShaderLibrary.reset();
         m_upImpl->upMaterialSystem.reset();
@@ -228,6 +252,12 @@ namespace Flawy::Core
     {
         m_upImpl->RequireInitialized("GetShaderLibrary");
         return *m_upImpl->upShaderLibrary;
+    }
+
+    Assets::AssetManager& Application::GetAssetManager()
+    {
+        m_upImpl->RequireInitialized("GetAssetManager");
+        return *m_upImpl->upAssetManager;
     }
 
     void Application::OnStart()

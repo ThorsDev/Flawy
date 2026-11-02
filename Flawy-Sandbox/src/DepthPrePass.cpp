@@ -11,8 +11,9 @@ namespace Sandbox
         constexpr std::string_view kPassName = "DepthPrePass";
     }
 
-    DepthPrePass::DepthPrePass(const SceneResources& oResources) noexcept
+    DepthPrePass::DepthPrePass(const SceneResources& oResources, const ImportResources& oImportResources) noexcept
         : m_oResources(oResources)
+        , m_oImportResources(oImportResources)
     {
     }
 
@@ -24,6 +25,11 @@ namespace Sandbox
     void DepthPrePass::SetTimeSeconds(float fTimeSeconds) noexcept
     {
         m_fTimeSeconds = fTimeSeconds;
+    }
+
+    void DepthPrePass::SetJointMatrices(std::span<const glm::mat4> spanJointMatrices) noexcept
+    {
+        m_spanJointMatrices = spanJointMatrices;
     }
 
     void DepthPrePass::Setup(Flawy::Renderer::RenderPassBuilder& oBuilder)
@@ -46,5 +52,7 @@ namespace Sandbox
         oState.bDepthWrite = true;
         oState.bColorWrite = false;
         SceneDrawer::DrawMeshes(oContext, m_oResources, m_fTimeSeconds, oState);
+        SceneDrawer::DrawSkeletonJoints(oContext, m_oResources, m_spanJointMatrices, oState);
+        SceneDrawer::DrawImported(oContext, m_oResources, m_oImportResources, oState);
     }
 }

@@ -10,6 +10,8 @@ The user communicates in Hungarian. Answer in Hungarian. Code, identifiers and a
 - `docs/architecture.md`: folder layout, modules, link visibility, how to build
 - `docs/coding-standards.md`: binding code rules (no comments, OOP, naming)
 - `docs/shaders.md`: Slang shader pipeline design (runtime compilation for every bgfx backend)
+- `docs/assets.md`: asset system (AssetManager, loaders/importers, `.fl*` binary formats, `.flmesh`, glTF/FBX/OBJ import rules)
+- `docs/animation.md`: animation module (ozz-animation behind pimpl, `.flskel` / `.flclip` binary, `.flctrl` controller JSON, Animator state machine)
 
 ## Build
 

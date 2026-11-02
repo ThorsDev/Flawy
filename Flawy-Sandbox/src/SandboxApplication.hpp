@@ -1,6 +1,9 @@
 #pragma once
 
+#include "AnimationDriver.hpp"
+#include "AnimationResources.hpp"
 #include "DepthPrePass.hpp"
+#include "ImportResources.hpp"
 #include "PostProcessPass.hpp"
 #include "PostProcessResources.hpp"
 #include "SceneResources.hpp"
@@ -11,6 +14,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <optional>
+#include <string>
 
 namespace Sandbox
 {
@@ -20,6 +24,8 @@ namespace Sandbox
         uint32_t uFrameLimit = 0;
         std::optional<std::filesystem::path> optScreenshotPath;
         std::optional<std::filesystem::path> optShaderCacheDirectory;
+        std::optional<std::filesystem::path> optAssetRoot;
+        std::optional<std::string> optImportPath;
     };
 
     class SandboxApplication final : public Flawy::Core::Application
@@ -41,6 +47,9 @@ namespace Sandbox
         uint32_t m_uFrameIndex = 0;
         double m_dElapsedSeconds = 0.0;
         SceneResources m_oScene;
+        AnimationResources m_oAnimation;
+        AnimationDriver m_oAnimationDriver;
+        ImportResources m_oImport;
         DepthPrePass m_oDepthPrePass;
         ScenePass m_oScenePass;
         PostProcessResources m_oPostProcess;

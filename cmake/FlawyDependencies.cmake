@@ -2,7 +2,7 @@ include_guard(GLOBAL)
 
 set(FLAWY_VENDOR_DIR "${PROJECT_SOURCE_DIR}/vendor" CACHE PATH "Directory containing the Flawy third-party dependencies")
 
-set(FLAWY_REQUIRED_VENDORS SDL bgfx miniaudio simdjson fastgltf entt angelscript JoltPhysics glm imgui tracy spdlog slang)
+set(FLAWY_REQUIRED_VENDORS SDL bgfx miniaudio simdjson fastgltf entt angelscript JoltPhysics glm imgui tracy spdlog slang ozz-animation ufbx fast_obj)
 
 foreach(vendor IN LISTS FLAWY_REQUIRED_VENDORS)
     if(NOT EXISTS "${FLAWY_VENDOR_DIR}/${vendor}")
@@ -109,6 +109,26 @@ set(SPDLOG_BUILD_EXAMPLE OFF)
 set(SPDLOG_BUILD_TESTS OFF)
 set(SPDLOG_INSTALL OFF)
 add_subdirectory("${FLAWY_VENDOR_DIR}/spdlog" "${CMAKE_BINARY_DIR}/vendor/spdlog" EXCLUDE_FROM_ALL SYSTEM)
+
+set(ozz_build_tools OFF)
+set(ozz_build_fbx OFF)
+set(ozz_build_gltf OFF)
+set(ozz_build_data OFF)
+set(ozz_build_samples OFF)
+set(ozz_build_howtos OFF)
+set(ozz_build_tests OFF)
+set(ozz_build_msvc_rt_dll ON)
+set(CMAKE_SKIP_INSTALL_RULES ON)
+add_subdirectory("${FLAWY_VENDOR_DIR}/ozz-animation" "${CMAKE_BINARY_DIR}/vendor/ozz-animation" EXCLUDE_FROM_ALL SYSTEM)
+unset(CMAKE_SKIP_INSTALL_RULES)
+set_target_properties(ozz_base ozz_animation ozz_animation_offline PROPERTIES COMPILE_WARNING_AS_ERROR OFF)
+
+add_library(ufbx STATIC "${FLAWY_VENDOR_DIR}/ufbx/ufbx.c")
+target_include_directories(ufbx SYSTEM PUBLIC "${FLAWY_VENDOR_DIR}/ufbx")
+set_target_properties(ufbx PROPERTIES EXCLUDE_FROM_ALL ON COMPILE_WARNING_AS_ERROR OFF)
+
+add_library(fast_obj INTERFACE)
+target_include_directories(fast_obj SYSTEM INTERFACE "${FLAWY_VENDOR_DIR}/fast_obj")
 
 set(FLAWY_SLANG_DIR "${FLAWY_VENDOR_DIR}/slang")
 add_library(Slang::slang SHARED IMPORTED GLOBAL)

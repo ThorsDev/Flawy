@@ -42,20 +42,22 @@ Minden modul saját namespace-t és almappát kap:
 | Platform | `Flawy::Platform` | ablak, input, eventek (SDL3) |
 | Renderer | `Flawy::Renderer` | renderelés (bgfx) |
 | Audio | `Flawy::Audio` | hang (miniaudio) |
-| Assets | `Flawy::Assets` | modellek, textúrák, asset-kezelés (fastgltf) |
+| Assets | `Flawy::Assets` | asset-kezelés: `AssetManager`, loaderek/importerek, `.fl*` bináris formátumok, `StaticMeshAsset` (lásd [assets.md](assets.md)) |
+| Animation | `Flawy::Animation` | csontváz, klipek, póz-mintavételezés és -keverés, animation controller és `Animator` (ozz-animation, pimpl mögött), `.flskel` / `.flclip` / `.flctrl` assetek (lásd [animation.md](animation.md)) |
+| Import | `Flawy::Import` | modell-importerek (`ModelImporter`, `ModelImporterFactory`): glTF (fastgltf), FBX (ufbx), OBJ (fast_obj) → `StaticMeshAsset` / `SkeletonAsset` / `AnimationClipAsset`, opcionális mentéssel (lásd [assets.md](assets.md#import-gltf-fbx-obj)) |
 | Scene | `Flawy::Scene` | ECS, entitások, komponensek (EnTT) |
 | Physics | `Flawy::Physics` | fizika (Jolt) |
 | Scripting | `Flawy::Scripting` | AngelScript integráció |
 
 A modulok közti függőség egy irányba mutat: a Core-ra mindenki építhet, a Core viszont semmire. A harmadik féltől származó típusok lehetőleg ne szivárogjanak ki a publikus headerekbe. Ha mégis kell, a könyvtárat `PUBLIC`-ként kell linkelni.
 
-**Kivétel: `Core::Application` a composition root.** Ez az egyetlen hely a Core-ban, amely a Platform és a Renderer modulra építhet: létrehozza az `IPlatformSystem`-et, az `IWindow`-t, a `RenderDevice`-t, a `MaterialSystem`-et, a `ShaderLibrary`-t és a `RenderGraph`-ot, majd fordított sorrendben bontja le őket. A Core többi része (Logger, BuildInfo, ...) továbbra is függőségmentes.
+**Kivétel: `Core::Application` a composition root.** Ez az egyetlen hely a Core-ban, amely a Platform, a Renderer, az Assets, az Animation és az Import modulra építhet: létrehozza az `IPlatformSystem`-et, az `IWindow`-t, a `RenderDevice`-t, a `MaterialSystem`-et, a `ShaderLibrary`-t, az `Assets::AssetManager`-t és a `RenderGraph`-ot, majd fordított sorrendben bontja le őket. A Core többi része (Logger, BuildInfo, ...) továbbra is függőségmentes.
 
 ### Application életciklus
 
-- `Initialize()`: platform → ablak → `RenderDevice` (az ablak pixelméretével) → `MaterialSystem` (az `ApplicationSpecification::optShaderCacheDirectory`-val mint lemezes shader cache könyvtárral) → `ShaderLibrary` (a `MaterialSystem` compilerével és cache-ével, az `ApplicationSpecification::vShaderSearchRoots` keresési gyökerekkel) → `RenderGraph`, majd `OnStart()`. Másodszori hívása no-op.
+- `Initialize()`: platform → ablak → `RenderDevice` (az ablak pixelméretével) → `MaterialSystem` (az `ApplicationSpecification::optShaderCacheDirectory`-val mint lemezes shader cache könyvtárral) → `ShaderLibrary` (a `MaterialSystem` compilerével és cache-ével, az `ApplicationSpecification::vShaderSearchRoots` keresési gyökerekkel) → `Assets::AssetManager` (az `ApplicationSpecification::optAssetRoot` asset roottal; az engine loaderei, a `StaticMeshLoader`, a `SkeletonLoader`, az `AnimationClipLoader` és az `AnimationControllerLoader`, valamint a glTF/FBX/OBJ importerek itt regisztrálódnak) → `RenderGraph`, majd `OnStart()`. Másodszori hívása no-op.
 - `Tick()`: eventek feldolgozása (bezárás → kilépés, méretváltozás → `RenderDevice::Resize`), `OnUpdate(dt)`, `RenderGraph::BeginFrame()`, `OnRender(RenderGraph&)`, `RenderGraph::Execute()`, `RenderDevice::EndFrame()` (`bgfx::frame()`).
-- `Shutdown()`: `OnShutdown()`, majd a `RenderGraph` (a transient target poollal együtt), a `ShaderLibrary`, a `MaterialSystem`, a renderer, az ablak és a platform lebontása. A bgfx handle-öket burkoló alosztály-erőforrásokat (bufferek, textúrák, `RenderTarget`-ek, `ShaderParameters`, `Material`-ok és `MaterialInstance`-ok) az `OnShutdown()`-ban kell felszabadítani; ide tartoznak a `ShaderLibrary` programjaira épülő `ShaderParameters` példányok is (magukat a programokat a `ShaderLibrary` birtokolja).
+- `Shutdown()`: `OnShutdown()`, majd az `AssetManager` (a cache-elt assetekkel együtt, így a GPU-alapú assetek még élő eszközön szabadulnak fel), a `RenderGraph` (a transient target poollal együtt), a `ShaderLibrary`, a `MaterialSystem`, a renderer, az ablak és a platform lebontása. A bgfx handle-öket burkoló alosztály-erőforrásokat (bufferek, textúrák, `RenderTarget`-ek, `ShaderParameters`, `Material`-ok és `MaterialInstance`-ok) az `OnShutdown()`-ban kell felszabadítani; ide tartoznak a `ShaderLibrary` programjaira épülő `ShaderParameters` példányok is (magukat a programokat a `ShaderLibrary` birtokolja), valamint a GPU-alapú assetekre (pl. `StaticMeshAsset`) mutató `AssetHandle`-ök.
 - `Run()` = `Initialize()` + `Tick()` ciklus amíg fut + `Shutdown()`. A `Tick()` és a `Shutdown()` `Initialize()` előtt `std::logic_error`-t dob.
 - A bgfx egyszálú módban fut: a `RenderDevice` az `bgfx::init()` előtt egyszer meghívja a `bgfx::renderFrame()`-et a fő szálon.
 
@@ -78,11 +80,13 @@ A host nem lát bgfx view id-t: minden rajzolás egy `IRenderPass`-on keresztül
 | Láthatóság | Könyvtárak | Miért |
 |---|---|---|
 | `PUBLIC` | GLM, EnTT, spdlog, Dear ImGui | a publikus API-ban is megjelenhetnek (matek típusok, registry, logger, debug UI egy editorhoz) |
-| `PRIVATE` | SDL3, bgfx (bx, bimg), miniaudio, fastgltf, simdjson, AngelScript, Jolt, Tracy, Slang | implementációs részlet, csak az engine `.cpp` fájljai látják |
+| `PRIVATE` | SDL3, bgfx (bx, bimg), miniaudio, fastgltf, simdjson, AngelScript, Jolt, Tracy, Slang, ozz-animation, ufbx, fast_obj | implementációs részlet, csak az engine `.cpp` fájljai látják |
 
 Mivel a lib statikus, a `PRIVATE` függőségek is automatikusan belinkelődnek a fogyasztóba, így a host oldalon nincs vele teendő.
 
 ## Build
+
+A minimális CMake verzió 3.30 (az ozz-animation ezt követeli meg); a `CMakeLists.txt` és a `CMakePresets.json` is ezt deklarálja.
 
 ```powershell
 scripts/install.bat

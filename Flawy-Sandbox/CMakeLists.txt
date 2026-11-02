@@ -5,7 +5,10 @@ file(GLOB FLAWY_SANDBOX_SHADERS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/s
 add_executable(Flawy-Sandbox ${FLAWY_SANDBOX_SOURCES} ${FLAWY_SANDBOX_SHADERS})
 
 target_link_libraries(Flawy-Sandbox PRIVATE Flawy::Flawy)
-target_compile_definitions(Flawy-Sandbox PRIVATE FLAWY_SANDBOX_SHADER_DIR="${CMAKE_CURRENT_SOURCE_DIR}/shaders")
+target_compile_definitions(Flawy-Sandbox PRIVATE
+    FLAWY_SANDBOX_SHADER_DIR="${CMAKE_CURRENT_SOURCE_DIR}/shaders"
+    FLAWY_SANDBOX_ASSET_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets"
+)
 
 flawy_configure_target(Flawy-Sandbox)
 

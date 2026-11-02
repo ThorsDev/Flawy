@@ -46,6 +46,9 @@ target_link_libraries(Flawy
         Tracy::TracyClient
         Slang::slang
         simdjson::simdjson
+        ozz_animation_offline
+        ufbx
+        fast_obj
 )
 
 flawy_configure_target(Flawy)

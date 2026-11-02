@@ -11,3 +11,6 @@ glm           https://github.com/g-truc/glm.git                 1.0.3           
 imgui         https://github.com/ocornut/imgui.git              v1.92.9b             no
 tracy         https://github.com/wolfpld/tracy.git              v0.14.1              no
 spdlog        https://github.com/gabime/spdlog.git              v1.17.0              no
+ozz-animation https://github.com/guillaumeblanc/ozz-animation.git 0.17.0               no
+ufbx          https://github.com/ufbx/ufbx.git                  v0.23.1              no
+fast_obj      https://github.com/thisistherk/fast_obj.git       v1.3                 no

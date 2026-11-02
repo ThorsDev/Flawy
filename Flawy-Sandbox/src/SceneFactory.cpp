@@ -7,6 +7,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <memory>
 #include <span>
 #include <string>
@@ -17,6 +18,8 @@ namespace Sandbox
 {
     namespace
     {
+        constexpr std::string_view kCubeAssetPath = "generated/Cube.flmesh";
+        constexpr std::string_view kCubeMeshName = "Cube";
         constexpr std::string_view kGraphName = "SandboxSurface";
         constexpr std::string_view kAlbedoParameter = "Albedo";
         constexpr std::string_view kNormalMapParameter = "NormalMap";
@@ -49,23 +52,6 @@ namespace Sandbox
         constexpr SurfaceSettings kCubeSurface = {{1.0f, 0.9f, 0.75f, 1.0f}, 0.1f, 0.4f, {0.0f, 0.0f, 0.0f, 0.0f}};
         constexpr SurfaceSettings kGroundSurface = {{0.45f, 0.45f, 0.5f, 1.0f}, 0.0f, 0.9f, {0.0f, 0.0f, 0.0f, 0.0f}};
         constexpr SurfaceSettings kAccentSurface = {{1.0f, 0.85f, 0.6f, 1.0f}, 1.0f, 0.3f, {0.6f, 0.25f, 0.05f, 0.0f}};
-
-        struct TangentMeshVertex
-        {
-            float fX;
-            float fY;
-            float fZ;
-            float fNormalX;
-            float fNormalY;
-            float fNormalZ;
-            float fTangentX;
-            float fTangentY;
-            float fTangentZ;
-            float fTangentW;
-            float fU;
-            float fV;
-            uint32_t uAbgr;
-        };
 
         struct MeshVertex
         {
@@ -106,36 +92,29 @@ namespace Sandbox
             return static_cast<uint32_t>(uFace * kFaceCorners.size() + uCorner);
         }
 
-        std::array<TangentMeshVertex, kCubeFaces.size() * kFaceCorners.size()> BuildCubeVertices() noexcept
+        Flawy::Assets::MeshData BuildCubeMeshData()
         {
-            std::array<TangentMeshVertex, kCubeFaces.size() * kFaceCorners.size()> aVertices{};
-            for (size_t uFace = 0; uFace < kCubeFaces.size(); ++uFace)
+            Flawy::Assets::MeshData oMesh;
+            oMesh.sName = std::string(kCubeMeshName);
+            for (const CubeFace& oFace : kCubeFaces)
             {
-                const CubeFace& oFace = kCubeFaces[uFace];
-                for (uint16_t uCorner = 0; uCorner < kFaceCorners.size(); ++uCorner)
+                for (const auto& [fU, fV] : kFaceCorners)
                 {
-                    const auto [fU, fV] = kFaceCorners[uCorner];
-                    const glm::vec3 vecPosition = oFace.vecNormal * 0.5f + oFace.vecRight * (fU - 0.5f) + oFace.vecUp * (0.5f - fV);
-                    aVertices[ToCubeVertexIndex(uFace, uCorner)] = {vecPosition.x, vecPosition.y, vecPosition.z,
-                                                                    oFace.vecNormal.x, oFace.vecNormal.y, oFace.vecNormal.z,
-                                                                    oFace.vecRight.x, oFace.vecRight.y, oFace.vecRight.z, 1.0f,
-                                                                    fU, fV, oFace.uAbgr};
+                    oMesh.vPositions.push_back(oFace.vecNormal * 0.5f + oFace.vecRight * (fU - 0.5f) + oFace.vecUp * (0.5f - fV));
+                    oMesh.vNormals.push_back(oFace.vecNormal);
+                    oMesh.vTangents.emplace_back(oFace.vecRight, 1.0f);
+                    oMesh.vTexCoords0.emplace_back(fU, fV);
+                    oMesh.vColorsAbgr.push_back(oFace.uAbgr);
                 }
             }
-            return aVertices;
-        }
-
-        std::array<uint16_t, kCubeFaces.size() * kFaceIndices.size()> BuildCubeIndices() noexcept
-        {
-            std::array<uint16_t, kCubeFaces.size() * kFaceIndices.size()> aIndices{};
             for (size_t uFace = 0; uFace < kCubeFaces.size(); ++uFace)
             {
-                for (size_t uIndex = 0; uIndex < kFaceIndices.size(); ++uIndex)
+                for (const uint16_t uCorner : kFaceIndices)
                 {
-                    aIndices[uFace * kFaceIndices.size() + uIndex] = static_cast<uint16_t>(ToCubeVertexIndex(uFace, kFaceIndices[uIndex]));
+                    oMesh.vIndices.push_back(ToCubeVertexIndex(uFace, uCorner));
                 }
             }
-            return aIndices;
+            return oMesh;
         }
 
         std::array<MeshVertex, kFaceCorners.size()> BuildGroundVertices() noexcept
@@ -184,16 +163,12 @@ namespace Sandbox
             return aPixels;
         }
 
-        Flawy::Renderer::VertexLayout BuildMeshLayout(bool bWithTangent)
+        Flawy::Renderer::VertexLayout BuildMeshLayout()
         {
             Flawy::Renderer::VertexLayout oLayout;
             oLayout.Add(Flawy::Renderer::VertexAttribute::Position, 3, Flawy::Renderer::VertexAttributeType::Float)
-                .Add(Flawy::Renderer::VertexAttribute::Normal, 3, Flawy::Renderer::VertexAttributeType::Float);
-            if (bWithTangent)
-            {
-                oLayout.Add(Flawy::Renderer::VertexAttribute::Tangent, 4, Flawy::Renderer::VertexAttributeType::Float);
-            }
-            oLayout.Add(Flawy::Renderer::VertexAttribute::TexCoord0, 2, Flawy::Renderer::VertexAttributeType::Float)
+                .Add(Flawy::Renderer::VertexAttribute::Normal, 3, Flawy::Renderer::VertexAttributeType::Float)
+                .Add(Flawy::Renderer::VertexAttribute::TexCoord0, 2, Flawy::Renderer::VertexAttributeType::Float)
                 .Add(Flawy::Renderer::VertexAttribute::Color0, 4, Flawy::Renderer::VertexAttributeType::Uint8, true);
             return oLayout;
         }
@@ -257,24 +232,37 @@ namespace Sandbox
         }
     }
 
-    void SceneFactory::Create(SceneResources& oResources, Flawy::Renderer::MaterialSystem& oMaterialSystem)
+    void SceneFactory::Create(SceneResources& oResources, Flawy::Renderer::MaterialSystem& oMaterialSystem, Flawy::Assets::AssetManager& oAssetManager)
     {
-        CreateMeshes(oResources);
+        CreateMeshes(oResources, oAssetManager);
         CreateTextures(oResources);
         CreateMaterial(oResources, oMaterialSystem);
         CreateMaterialInstances(oResources);
     }
 
-    void SceneFactory::CreateMeshes(SceneResources& oResources)
+    void SceneFactory::CreateMeshes(SceneResources& oResources, Flawy::Assets::AssetManager& oAssetManager)
     {
-        const auto aCubeVertices = BuildCubeVertices();
-        const auto aCubeIndices = BuildCubeIndices();
-        oResources.upCubeVertexBuffer = std::make_unique<Flawy::Renderer::VertexBuffer>(std::as_bytes(std::span(aCubeVertices)), BuildMeshLayout(true));
-        oResources.upCubeIndexBuffer = std::make_unique<Flawy::Renderer::IndexBuffer>(std::span<const uint16_t>(aCubeIndices));
+        EnsureCubeAsset(oAssetManager);
+        oResources.oCubeMesh = oAssetManager.Load<Flawy::Assets::StaticMeshAsset>(kCubeAssetPath);
+        static_cast<void>(oAssetManager.Load<Flawy::Assets::StaticMeshAsset>(kCubeAssetPath));
+        const Flawy::Assets::AssetManagerStatistics& oStatistics = oAssetManager.GetStatistics();
+        Flawy::Core::Logger::Get().info("Asset cache: loads={} hits={} loaded={}", oStatistics.uLoads, oStatistics.uCacheHits, oAssetManager.GetLoadedCount());
 
         const auto aGroundVertices = BuildGroundVertices();
-        oResources.upGroundVertexBuffer = std::make_unique<Flawy::Renderer::VertexBuffer>(std::as_bytes(std::span(aGroundVertices)), BuildMeshLayout(false));
+        oResources.upGroundVertexBuffer = std::make_unique<Flawy::Renderer::VertexBuffer>(std::as_bytes(std::span(aGroundVertices)), BuildMeshLayout());
         oResources.upGroundIndexBuffer = std::make_unique<Flawy::Renderer::IndexBuffer>(std::span<const uint16_t>(kFaceIndices));
+    }
+
+    void SceneFactory::EnsureCubeAsset(Flawy::Assets::AssetManager& oAssetManager)
+    {
+        const std::filesystem::path oCubePath = oAssetManager.ResolvePath(kCubeAssetPath);
+        if (std::filesystem::exists(oCubePath))
+        {
+            return;
+        }
+
+        Flawy::Assets::MeshDataSerializer::Save(oCubePath, BuildCubeMeshData());
+        Flawy::Core::Logger::Get().info("Saved generated asset '{}'", kCubeAssetPath);
     }
 
     void SceneFactory::CreateTextures(SceneResources& oResources)

@@ -34,8 +34,9 @@ namespace Sandbox
         }
     }
 
-    ScenePass::ScenePass(const SceneResources& oResources) noexcept
+    ScenePass::ScenePass(const SceneResources& oResources, const ImportResources& oImportResources) noexcept
         : m_oResources(oResources)
+        , m_oImportResources(oImportResources)
     {
     }
 
@@ -47,6 +48,11 @@ namespace Sandbox
     void ScenePass::SetTimeSeconds(float fTimeSeconds) noexcept
     {
         m_fTimeSeconds = fTimeSeconds;
+    }
+
+    void ScenePass::SetJointMatrices(std::span<const glm::mat4> spanJointMatrices) noexcept
+    {
+        m_spanJointMatrices = spanJointMatrices;
     }
 
     void ScenePass::Setup(Flawy::Renderer::RenderPassBuilder& oBuilder)
@@ -69,5 +75,7 @@ namespace Sandbox
         oState.eDepthTest = Flawy::Renderer::DepthTest::LessEqual;
         oState.bDepthWrite = false;
         SceneDrawer::DrawMeshes(oContext, m_oResources, m_fTimeSeconds, oState);
+        SceneDrawer::DrawSkeletonJoints(oContext, m_oResources, m_spanJointMatrices, oState);
+        SceneDrawer::DrawImported(oContext, m_oResources, m_oImportResources, oState);
     }
 }

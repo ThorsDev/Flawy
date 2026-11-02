@@ -16,6 +16,8 @@ namespace
     constexpr std::string_view kFramesOption = "--frames=";
     constexpr std::string_view kScreenshotOption = "--screenshot=";
     constexpr std::string_view kShaderCacheOption = "--shader-cache=";
+    constexpr std::string_view kAssetRootOption = "--asset-root=";
+    constexpr std::string_view kImportOption = "--import=";
 
     Flawy::Renderer::RendererBackend ParseRendererName(std::string_view svName)
     {
@@ -77,6 +79,24 @@ namespace
                     throw std::invalid_argument("--shader-cache requires a directory path");
                 }
                 oOptions.optShaderCacheDirectory = std::filesystem::path(svPath);
+            }
+            else if (svArgument.starts_with(kAssetRootOption))
+            {
+                const std::string_view svPath = svArgument.substr(kAssetRootOption.size());
+                if (svPath.empty())
+                {
+                    throw std::invalid_argument("--asset-root requires a directory path");
+                }
+                oOptions.optAssetRoot = std::filesystem::path(svPath);
+            }
+            else if (svArgument.starts_with(kImportOption))
+            {
+                const std::string_view svPath = svArgument.substr(kImportOption.size());
+                if (svPath.empty())
+                {
+                    throw std::invalid_argument("--import requires an asset path relative to the asset root");
+                }
+                oOptions.optImportPath = std::string(svPath);
             }
         }
         return oOptions;

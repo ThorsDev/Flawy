@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.25)
+cmake_minimum_required(VERSION 3.30)
 
 if(NOT DEFINED FLAWY_SHADER_DIR OR NOT DEFINED FLAWY_SHADER_OUTPUT)
     message(FATAL_ERROR "FlawyEmbedShaders.cmake requires FLAWY_SHADER_DIR and FLAWY_SHADER_OUTPUT")

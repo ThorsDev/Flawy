@@ -5,6 +5,8 @@
 #include <glm/trigonometric.hpp>
 #include <glm/vec3.hpp>
 
+#include <cstdint>
+
 namespace Sandbox
 {
     namespace
@@ -20,6 +22,8 @@ namespace Sandbox
         constexpr float kAccentScale = 0.5f;
         constexpr glm::vec3 kYAxis = {0.0f, 1.0f, 0.0f};
         constexpr glm::vec3 kXAxis = {1.0f, 0.0f, 0.0f};
+        constexpr glm::vec3 kSkeletonOrigin = {-1.4f, -0.9f, 0.0f};
+        constexpr float kJointCubeScale = 0.08f;
 
         glm::mat4 BuildCubeTransform(float fTimeSeconds)
         {
@@ -49,8 +53,56 @@ namespace Sandbox
     void SceneDrawer::DrawMeshes(Flawy::Renderer::RenderPassContext& oContext, const SceneResources& oResources, float fTimeSeconds, const Flawy::Renderer::RenderState& oState)
     {
         DrawMesh(oContext, *oResources.upGroundVertexBuffer, *oResources.upGroundIndexBuffer, *oResources.upGroundInstance, glm::mat4(1.0f), oState);
-        DrawMesh(oContext, *oResources.upCubeVertexBuffer, *oResources.upCubeIndexBuffer, *oResources.upCubeInstance, BuildCubeTransform(fTimeSeconds), oState);
-        DrawMesh(oContext, *oResources.upCubeVertexBuffer, *oResources.upCubeIndexBuffer, *oResources.upAccentInstance, BuildAccentTransform(fTimeSeconds), oState);
+        DrawStaticMesh(oContext, oResources.oCubeMesh.Get(), *oResources.upCubeInstance, BuildCubeTransform(fTimeSeconds), oState);
+        DrawStaticMesh(oContext, oResources.oCubeMesh.Get(), *oResources.upAccentInstance, BuildAccentTransform(fTimeSeconds), oState);
+    }
+
+    void SceneDrawer::DrawSkeletonJoints(Flawy::Renderer::RenderPassContext& oContext,
+                                         const SceneResources& oResources,
+                                         std::span<const glm::mat4> spanJointMatrices,
+                                         const Flawy::Renderer::RenderState& oState)
+    {
+        DrawJoints(oContext, oResources, spanJointMatrices, glm::translate(glm::mat4(1.0f), kSkeletonOrigin), oState);
+    }
+
+    void SceneDrawer::DrawImported(Flawy::Renderer::RenderPassContext& oContext,
+                                   const SceneResources& oSceneResources,
+                                   const ImportResources& oImportResources,
+                                   const Flawy::Renderer::RenderState& oState)
+    {
+        for (const ImportedModelInstance& oModel : oImportResources.vModels)
+        {
+            DrawStaticMesh(oContext, oModel.oMesh.Get(), *oSceneResources.upCubeInstance, oModel.matModel, oState);
+        }
+        if (oImportResources.upAnimator)
+        {
+            DrawJoints(oContext, oSceneResources, oImportResources.upAnimator->GetModelPose().GetJointMatrices(), oImportResources.matJointOrigin, oState);
+        }
+    }
+
+    void SceneDrawer::DrawJoints(Flawy::Renderer::RenderPassContext& oContext,
+                                 const SceneResources& oResources,
+                                 std::span<const glm::mat4> spanJointMatrices,
+                                 const glm::mat4& matOrigin,
+                                 const Flawy::Renderer::RenderState& oState)
+    {
+        for (const glm::mat4& matJoint : spanJointMatrices)
+        {
+            const glm::mat4 matModel = glm::scale(matOrigin * matJoint, glm::vec3(kJointCubeScale));
+            DrawStaticMesh(oContext, oResources.oCubeMesh.Get(), *oResources.upAccentInstance, matModel, oState);
+        }
+    }
+
+    void SceneDrawer::DrawStaticMesh(Flawy::Renderer::RenderPassContext& oContext,
+                                     const Flawy::Assets::StaticMeshAsset& oMesh,
+                                     const Flawy::Renderer::MaterialInstance& oMaterial,
+                                     const glm::mat4& matModel,
+                                     const Flawy::Renderer::RenderState& oState)
+    {
+        for (uint32_t uSection = 0; uSection < oMesh.GetSectionCount(); ++uSection)
+        {
+            DrawMesh(oContext, oMesh.GetVertexBuffer(), oMesh.GetSectionIndexBuffer(uSection), oMaterial, matModel, oState);
+        }
     }
 
     void SceneDrawer::DrawMesh(Flawy::Renderer::RenderPassContext& oContext,

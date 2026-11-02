@@ -8,8 +8,7 @@ namespace Sandbox
 {
     struct SceneResources
     {
-        std::unique_ptr<Flawy::Renderer::VertexBuffer> upCubeVertexBuffer;
-        std::unique_ptr<Flawy::Renderer::IndexBuffer> upCubeIndexBuffer;
+        Flawy::Assets::AssetHandle<Flawy::Assets::StaticMeshAsset> oCubeMesh;
         std::unique_ptr<Flawy::Renderer::VertexBuffer> upGroundVertexBuffer;
         std::unique_ptr<Flawy::Renderer::IndexBuffer> upGroundIndexBuffer;
         std::unique_ptr<Flawy::Renderer::Texture> upCheckerboard;

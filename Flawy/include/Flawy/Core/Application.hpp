@@ -14,6 +14,11 @@ namespace Flawy::Platform
     class IWindow;
 }
 
+namespace Flawy::Assets
+{
+    class AssetManager;
+}
+
 namespace Flawy::Renderer
 {
     class RenderDevice;
@@ -32,6 +37,7 @@ namespace Flawy::Core
         bool bVSync = true;
         std::optional<std::filesystem::path> optShaderCacheDirectory;
         std::vector<std::filesystem::path> vShaderSearchRoots;
+        std::optional<std::filesystem::path> optAssetRoot;
     };
 
     class Application
@@ -58,6 +64,7 @@ namespace Flawy::Core
         [[nodiscard]] Renderer::RenderGraph& GetRenderGraph();
         [[nodiscard]] Renderer::MaterialSystem& GetMaterialSystem();
         [[nodiscard]] Renderer::ShaderLibrary& GetShaderLibrary();
+        [[nodiscard]] Assets::AssetManager& GetAssetManager();
 
     protected:
         virtual void OnStart();

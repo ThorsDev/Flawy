@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "name": "SandboxArm",
+  "parameters": [
+    { "name": "Energy", "type": "float", "default": 0.0 },
+    { "name": "Grounded", "type": "bool", "default": true },
+    { "name": "Wave", "type": "trigger" }
+  ],
+  "entry": "Idle",
+  "states": [
+    {
+      "name": "Idle",
+      "blend": {
+        "parameter": "Energy",
+        "entries": [
+          { "threshold": 0.0, "clip": "Idle" },
+          { "threshold": 1.0, "clip": "Sway" }
+        ]
+      },
+      "speed": 1.0,
+      "loop": true
+    },
+    { "name": "Wave", "clip": "Wave", "loop": false }
+  ],
+  "transitions": [
+    { "from": "Idle", "to": "Wave", "duration": 0.15, "conditions": [ { "parameter": "Wave", "triggered": true } ] },
+    { "from": "Wave", "to": "Idle", "duration": 0.25, "exitTime": 0.95 },
+    { "from": "*", "to": "Idle", "duration": 0.2, "conditions": [ { "parameter": "Grounded", "equals": false } ] }
+  ]
+}

@@ -28,6 +28,17 @@ namespace Flawy::Core
 
         [[nodiscard]] uint64_t GetValue() const noexcept;
 
+        [[nodiscard]] static constexpr uint64_t HashText(std::string_view svText, uint64_t uSeed = kDefaultSeed) noexcept
+        {
+            uint64_t uState = uSeed;
+            for (const char cCharacter : svText)
+            {
+                uState ^= static_cast<uint64_t>(static_cast<unsigned char>(cCharacter));
+                uState *= kPrime;
+            }
+            return uState;
+        }
+
     private:
         static constexpr uint64_t kPrime = 0x100000001b3ull;
 
