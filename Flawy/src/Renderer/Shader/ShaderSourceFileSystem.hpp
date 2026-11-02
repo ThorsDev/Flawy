@@ -5,8 +5,6 @@
 #include <slang.h>
 
 #include <cstdint>
-#include <string>
-#include <string_view>
 
 namespace Flawy::Renderer
 {
@@ -28,7 +26,6 @@ namespace Flawy::Renderer
         SLANG_NO_THROW SlangResult SLANG_MCALL loadFile(const char* szPath, ISlangBlob** pOutBlob) override;
 
     private:
-        [[nodiscard]] static std::string NormalizePath(std::string_view svPath);
         [[nodiscard]] void* FindInterface(const SlangUUID& oUuid) noexcept;
 
         const IShaderSourceProvider& m_oProvider;

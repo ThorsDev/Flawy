@@ -22,6 +22,12 @@ namespace Flawy::Renderer
         constexpr std::string_view kTemporaryExtension = ".tmp";
         constexpr std::uintmax_t kMaxEntryFileSize = 64ull * 1024ull * 1024ull;
 
+        enum class ShaderCacheRequestKind : uint8_t
+        {
+            Source = 0,
+            Specialized = 1
+        };
+
         class ShaderCacheKeyBuilder final
         {
         public:
@@ -33,6 +39,7 @@ namespace Flawy::Renderer
             void AppendRequest(const SpecializedShaderRequest& oRequest, std::string_view svCompilerFingerprint) noexcept
             {
                 m_oHasher.AppendValue(ShaderCache::GetFormatVersion());
+                m_oHasher.AppendValue(ShaderCacheRequestKind::Specialized);
                 m_oHasher.Append(svCompilerFingerprint);
                 m_oHasher.AppendValue(oRequest.eStage);
                 m_oHasher.Append(oRequest.sEntryPoint);
@@ -46,6 +53,24 @@ namespace Flawy::Renderer
                 for (const std::string& sTypeArgument : oRequest.vTypeArguments)
                 {
                     m_oHasher.Append(sTypeArgument);
+                }
+            }
+
+            void AppendSource(const ShaderSource& oSource, ShaderStage eStage, std::string_view svEntryPoint, std::string_view svCompilerFingerprint) noexcept
+            {
+                m_oHasher.AppendValue(ShaderCache::GetFormatVersion());
+                m_oHasher.AppendValue(ShaderCacheRequestKind::Source);
+                m_oHasher.Append(svCompilerFingerprint);
+                m_oHasher.AppendValue(eStage);
+                m_oHasher.Append(svEntryPoint);
+                m_oHasher.Append(oSource.sName);
+                m_oHasher.Append(oSource.sPath);
+                m_oHasher.Append(oSource.sCode);
+                m_oHasher.AppendValue(static_cast<uint64_t>(oSource.vDefines.size()));
+                for (const ShaderDefine& oDefine : oSource.vDefines)
+                {
+                    m_oHasher.Append(oDefine.sName);
+                    m_oHasher.Append(oDefine.sValue);
                 }
             }
 
@@ -110,6 +135,15 @@ namespace Flawy::Renderer
         ShaderCacheKeyBuilder oHigh(Core::Fnv1aHasher::kAlternateSeed);
         oLow.AppendRequest(oRequest, svCompilerFingerprint);
         oHigh.AppendRequest(oRequest, svCompilerFingerprint);
+        return {oLow.GetValue(), oHigh.GetValue()};
+    }
+
+    ShaderCacheKey ShaderCacheKey::FromSource(const ShaderSource& oSource, ShaderStage eStage, std::string_view svEntryPoint, std::string_view svCompilerFingerprint)
+    {
+        ShaderCacheKeyBuilder oLow(Core::Fnv1aHasher::kDefaultSeed);
+        ShaderCacheKeyBuilder oHigh(Core::Fnv1aHasher::kAlternateSeed);
+        oLow.AppendSource(oSource, eStage, svEntryPoint, svCompilerFingerprint);
+        oHigh.AppendSource(oSource, eStage, svEntryPoint, svCompilerFingerprint);
         return {oLow.GetValue(), oHigh.GetValue()};
     }
 

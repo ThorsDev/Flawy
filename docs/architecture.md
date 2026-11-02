@@ -49,13 +49,13 @@ Minden modul saját namespace-t és almappát kap:
 
 A modulok közti függőség egy irányba mutat: a Core-ra mindenki építhet, a Core viszont semmire. A harmadik féltől származó típusok lehetőleg ne szivárogjanak ki a publikus headerekbe. Ha mégis kell, a könyvtárat `PUBLIC`-ként kell linkelni.
 
-**Kivétel: `Core::Application` a composition root.** Ez az egyetlen hely a Core-ban, amely a Platform és a Renderer modulra építhet: létrehozza az `IPlatformSystem`-et, az `IWindow`-t, a `RenderDevice`-t, a `MaterialSystem`-et és a `RenderGraph`-ot, majd fordított sorrendben bontja le őket. A Core többi része (Logger, BuildInfo, ...) továbbra is függőségmentes.
+**Kivétel: `Core::Application` a composition root.** Ez az egyetlen hely a Core-ban, amely a Platform és a Renderer modulra építhet: létrehozza az `IPlatformSystem`-et, az `IWindow`-t, a `RenderDevice`-t, a `MaterialSystem`-et, a `ShaderLibrary`-t és a `RenderGraph`-ot, majd fordított sorrendben bontja le őket. A Core többi része (Logger, BuildInfo, ...) továbbra is függőségmentes.
 
 ### Application életciklus
 
-- `Initialize()`: platform → ablak → `RenderDevice` (az ablak pixelméretével) → `MaterialSystem` (az `ApplicationSpecification::optShaderCacheDirectory`-val mint lemezes shader cache könyvtárral) → `RenderGraph`, majd `OnStart()`. Másodszori hívása no-op.
+- `Initialize()`: platform → ablak → `RenderDevice` (az ablak pixelméretével) → `MaterialSystem` (az `ApplicationSpecification::optShaderCacheDirectory`-val mint lemezes shader cache könyvtárral) → `ShaderLibrary` (a `MaterialSystem` compilerével és cache-ével, az `ApplicationSpecification::vShaderSearchRoots` keresési gyökerekkel) → `RenderGraph`, majd `OnStart()`. Másodszori hívása no-op.
 - `Tick()`: eventek feldolgozása (bezárás → kilépés, méretváltozás → `RenderDevice::Resize`), `OnUpdate(dt)`, `RenderGraph::BeginFrame()`, `OnRender(RenderGraph&)`, `RenderGraph::Execute()`, `RenderDevice::EndFrame()` (`bgfx::frame()`).
-- `Shutdown()`: `OnShutdown()`, majd a `RenderGraph` (a transient target poollal együtt), a `MaterialSystem`, a renderer, az ablak és a platform lebontása. A bgfx handle-öket burkoló alosztály-erőforrásokat (bufferek, textúrák, `RenderTarget`-ek, `ShaderParameters`, `Material`-ok és `MaterialInstance`-ok) az `OnShutdown()`-ban kell felszabadítani.
+- `Shutdown()`: `OnShutdown()`, majd a `RenderGraph` (a transient target poollal együtt), a `ShaderLibrary`, a `MaterialSystem`, a renderer, az ablak és a platform lebontása. A bgfx handle-öket burkoló alosztály-erőforrásokat (bufferek, textúrák, `RenderTarget`-ek, `ShaderParameters`, `Material`-ok és `MaterialInstance`-ok) az `OnShutdown()`-ban kell felszabadítani; ide tartoznak a `ShaderLibrary` programjaira épülő `ShaderParameters` példányok is (magukat a programokat a `ShaderLibrary` birtokolja).
 - `Run()` = `Initialize()` + `Tick()` ciklus amíg fut + `Shutdown()`. A `Tick()` és a `Shutdown()` `Initialize()` előtt `std::logic_error`-t dob.
 - A bgfx egyszálú módban fut: a `RenderDevice` az `bgfx::init()` előtt egyszer meghívja a `bgfx::renderFrame()`-et a fő szálon.
 

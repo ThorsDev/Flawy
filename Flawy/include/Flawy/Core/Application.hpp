@@ -7,6 +7,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 namespace Flawy::Platform
 {
@@ -18,6 +19,7 @@ namespace Flawy::Renderer
     class RenderDevice;
     class RenderGraph;
     class MaterialSystem;
+    class ShaderLibrary;
 }
 
 namespace Flawy::Core
@@ -29,6 +31,7 @@ namespace Flawy::Core
         Renderer::RendererBackend eRendererBackend = Renderer::RendererBackend::Default;
         bool bVSync = true;
         std::optional<std::filesystem::path> optShaderCacheDirectory;
+        std::vector<std::filesystem::path> vShaderSearchRoots;
     };
 
     class Application
@@ -54,6 +57,7 @@ namespace Flawy::Core
         [[nodiscard]] Renderer::RenderDevice& GetRenderDevice();
         [[nodiscard]] Renderer::RenderGraph& GetRenderGraph();
         [[nodiscard]] Renderer::MaterialSystem& GetMaterialSystem();
+        [[nodiscard]] Renderer::ShaderLibrary& GetShaderLibrary();
 
     protected:
         virtual void OnStart();

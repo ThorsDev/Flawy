@@ -11,6 +11,6 @@ namespace Sandbox
     public:
         PostProcessFactory() = delete;
 
-        static void Create(PostProcessResources& oResources, Flawy::Renderer::ShaderCompiler& oCompiler);
+        static void Create(PostProcessResources& oResources, Flawy::Renderer::ShaderLibrary& oLibrary);
     };
 }

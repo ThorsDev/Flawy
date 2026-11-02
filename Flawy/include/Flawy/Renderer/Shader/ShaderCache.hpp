@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Flawy/Renderer/Shader/CompiledShader.hpp"
+#include "Flawy/Renderer/Shader/ShaderSource.hpp"
+#include "Flawy/Renderer/Shader/ShaderStage.hpp"
 #include "Flawy/Renderer/Shader/SpecializedShaderRequest.hpp"
 
 #include <cstdint>
@@ -21,6 +23,7 @@ namespace Flawy::Renderer
         [[nodiscard]] bool operator==(const ShaderCacheKey&) const noexcept = default;
 
         [[nodiscard]] static ShaderCacheKey FromRequest(const SpecializedShaderRequest& oRequest, std::string_view svCompilerFingerprint);
+        [[nodiscard]] static ShaderCacheKey FromSource(const ShaderSource& oSource, ShaderStage eStage, std::string_view svEntryPoint, std::string_view svCompilerFingerprint);
     };
 
     struct ShaderCacheStatistics

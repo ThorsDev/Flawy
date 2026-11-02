@@ -6,6 +6,7 @@
 #include <glm/vec4.hpp>
 
 #include <cstdint>
+#include <filesystem>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -27,6 +28,7 @@ namespace Sandbox
             oSpecification.oWindow = {.sTitle = "Flawy-Sandbox", .uWidth = 1280, .uHeight = 720, .bResizable = true};
             oSpecification.eRendererBackend = oOptions.eBackend;
             oSpecification.optShaderCacheDirectory = oOptions.optShaderCacheDirectory;
+            oSpecification.vShaderSearchRoots = {std::filesystem::path(FLAWY_SANDBOX_SHADER_DIR)};
             return oSpecification;
         }
     }
@@ -57,7 +59,7 @@ namespace Sandbox
 
         Flawy::Renderer::MaterialSystem& oMaterialSystem = GetMaterialSystem();
         SceneFactory::Create(m_oScene, oMaterialSystem);
-        PostProcessFactory::Create(m_oPostProcess, oMaterialSystem.GetCompiler());
+        PostProcessFactory::Create(m_oPostProcess, GetShaderLibrary());
     }
 
     void SandboxApplication::OnUpdate(double dDeltaSeconds)
@@ -101,7 +103,6 @@ namespace Sandbox
         m_oPostProcess.upParameters.reset();
         m_oPostProcess.upIndexBuffer.reset();
         m_oPostProcess.upVertexBuffer.reset();
-        m_oPostProcess.upProgram.reset();
         m_oScene.upAccentInstance.reset();
         m_oScene.upGroundInstance.reset();
         m_oScene.upCubeInstance.reset();
@@ -126,11 +127,12 @@ namespace Sandbox
         }
 
         const Flawy::Renderer::ShaderCacheStatistics& oStatistics = oCache.GetStatistics();
-        Flawy::Core::Logger::Get().info("Shader cache: {} hit(s), {} miss(es), {} store(s); material permutations: {}",
+        Flawy::Core::Logger::Get().info("Shader cache: {} hit(s), {} miss(es), {} store(s); material permutations: {}; library programs: {}",
                                         oStatistics.uDiskHits,
                                         oStatistics.uMisses,
                                         oStatistics.uStores,
-                                        m_oScene.upMaterial ? m_oScene.upMaterial->GetPermutationCount() : 0u);
+                                        m_oScene.upMaterial ? m_oScene.upMaterial->GetPermutationCount() : 0u,
+                                        GetShaderLibrary().GetProgramCount());
     }
 
     uint32_t SandboxApplication::GetScreenshotFrame() const noexcept

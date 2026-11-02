@@ -8,6 +8,7 @@
 #include "Flawy/Renderer/Material/MaterialSystem.hpp"
 #include "Flawy/Renderer/RenderDevice.hpp"
 #include "Flawy/Renderer/RenderGraph/RenderGraph.hpp"
+#include "Flawy/Renderer/Shader/ShaderLibrary.hpp"
 
 #include <chrono>
 #include <stdexcept>
@@ -80,6 +81,7 @@ namespace Flawy::Core
         std::unique_ptr<Platform::IWindow> upWindow;
         std::unique_ptr<Renderer::RenderDevice> upRenderDevice;
         std::unique_ptr<Renderer::MaterialSystem> upMaterialSystem;
+        std::unique_ptr<Renderer::ShaderLibrary> upShaderLibrary;
         std::unique_ptr<Renderer::RenderGraph> upRenderGraph;
         WindowEventRouter oEventRouter;
         Clock::time_point tPreviousFrame;
@@ -130,12 +132,16 @@ namespace Flawy::Core
         Renderer::MaterialSystemSpecification oMaterialSpecification;
         oMaterialSpecification.optShaderCacheDirectory = oSpecification.optShaderCacheDirectory;
         auto upMaterialSystem = std::make_unique<Renderer::MaterialSystem>(*upRenderDevice, oMaterialSpecification);
+        Renderer::ShaderLibrarySpecification oLibrarySpecification;
+        oLibrarySpecification.vSearchRoots = oSpecification.vShaderSearchRoots;
+        auto upShaderLibrary = std::make_unique<Renderer::ShaderLibrary>(upMaterialSystem->GetCompiler(), upMaterialSystem->GetShaderCache(), oLibrarySpecification);
         auto upRenderGraph = std::make_unique<Renderer::RenderGraph>(*upRenderDevice);
 
         m_upImpl->upPlatform = std::move(upPlatform);
         m_upImpl->upWindow = std::move(upWindow);
         m_upImpl->upRenderDevice = std::move(upRenderDevice);
         m_upImpl->upMaterialSystem = std::move(upMaterialSystem);
+        m_upImpl->upShaderLibrary = std::move(upShaderLibrary);
         m_upImpl->upRenderGraph = std::move(upRenderGraph);
         m_upImpl->bInitialized = true;
         m_upImpl->bRunning = true;
@@ -170,6 +176,7 @@ namespace Flawy::Core
         OnShutdown();
 
         m_upImpl->upRenderGraph.reset();
+        m_upImpl->upShaderLibrary.reset();
         m_upImpl->upMaterialSystem.reset();
         m_upImpl->upRenderDevice.reset();
         m_upImpl->upWindow.reset();
@@ -215,6 +222,12 @@ namespace Flawy::Core
     {
         m_upImpl->RequireInitialized("GetMaterialSystem");
         return *m_upImpl->upMaterialSystem;
+    }
+
+    Renderer::ShaderLibrary& Application::GetShaderLibrary()
+    {
+        m_upImpl->RequireInitialized("GetShaderLibrary");
+        return *m_upImpl->upShaderLibrary;
     }
 
     void Application::OnStart()

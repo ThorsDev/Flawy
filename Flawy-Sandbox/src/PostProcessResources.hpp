@@ -8,7 +8,7 @@ namespace Sandbox
 {
     struct PostProcessResources
     {
-        std::unique_ptr<Flawy::Renderer::ShaderProgram> upProgram;
+        const Flawy::Renderer::ShaderProgram* pProgram = nullptr;
         std::unique_ptr<Flawy::Renderer::VertexBuffer> upVertexBuffer;
         std::unique_ptr<Flawy::Renderer::IndexBuffer> upIndexBuffer;
         std::unique_ptr<Flawy::Renderer::ShaderParameters> upParameters;

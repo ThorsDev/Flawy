@@ -4,14 +4,14 @@
 #include "Flawy/Renderer/Material/MaterialCompiler.hpp"
 #include "Flawy/Renderer/Material/MaterialSystem.hpp"
 #include "Flawy/Renderer/Shader/CompiledShader.hpp"
-#include "Flawy/Renderer/Shader/ShaderCache.hpp"
-#include "Flawy/Renderer/Shader/ShaderCompiler.hpp"
 #include "Flawy/Renderer/Shader/SpecializedShaderRequest.hpp"
 #include "Flawy/Renderer/ShaderProgram.hpp"
 #include "Renderer/Material/MaterialPassTable.hpp"
 #include "Renderer/Material/MaterialShaderNames.hpp"
 #include "Renderer/Material/MaterialText.hpp"
 #include "Renderer/Material/VertexFactoryTable.hpp"
+#include "Renderer/Shader/CachingShaderCompiler.hpp"
+#include "Renderer/Shader/ShaderInterfaceText.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -45,38 +45,6 @@ namespace Flawy::Renderer
             oDescriptor.oParameters.Validate();
         }
 
-        std::string_view ToTypeName(ShaderUniformType eType) noexcept
-        {
-            switch (eType)
-            {
-            case ShaderUniformType::Vec4:
-                return "Vec4";
-            case ShaderUniformType::Mat3:
-                return "Mat3";
-            case ShaderUniformType::Mat4:
-                return "Mat4";
-            case ShaderUniformType::Sampler:
-                return "Sampler";
-            }
-            return "Unknown";
-        }
-
-        std::string DescribeUniforms(const ShaderInterface& oInterface)
-        {
-            std::string sText;
-            for (const ShaderUniform& oUniform : oInterface.vUniforms)
-            {
-                sText.append(sText.empty() ? "" : ", ");
-                sText.append(std::format("{} ({}, count {}", oUniform.sName, ToTypeName(oUniform.eType), oUniform.uCount));
-                if (oUniform.eType == ShaderUniformType::Sampler)
-                {
-                    sText.append(std::format(", stage {}", oUniform.uTextureStage));
-                }
-                sText.append(oUniform.bPredefined ? ", predefined)" : ")");
-            }
-            return sText.empty() ? std::string("none") : sText;
-        }
-
         std::string DescribeKey(const MaterialPermutationKey& oKey)
         {
             return std::format("[{}, {}, set{}]", MaterialPassTable::GetName(oKey.ePass), VertexFactoryTable::GetName(oKey.eVertexFactory), oKey.uStaticSwitchSet);
@@ -91,15 +59,6 @@ namespace Flawy::Renderer
                 sText.append(std::format("{}={}", oValue.sName, oValue.bValue));
             }
             return sText.empty() ? std::string("none") : sText;
-        }
-
-        std::string_view DescribeOrigin(uint32_t uCachedStages, uint32_t uStageCount) noexcept
-        {
-            if (uCachedStages == uStageCount)
-            {
-                return "cache";
-            }
-            return uCachedStages == 0 ? "compiled" : "partially cached";
         }
 
         class MaterialInterfaceVerifier final
@@ -142,7 +101,7 @@ namespace Flawy::Renderer
                                                        m_svMaterialName,
                                                        uSlotCount,
                                                        MaterialShaderNames::kMaterialParamsUniform,
-                                                       ToTypeName(oUniform.eType),
+                                                       ShaderInterfaceText::GetTypeName(oUniform.eType),
                                                        oUniform.uCount));
                 }
             }
@@ -196,7 +155,7 @@ namespace Flawy::Renderer
                     throw std::logic_error(std::format("Material '{}' shader declares {} as {}[{}] but the engine provides Vec4[{}]",
                                                        m_svMaterialName,
                                                        svName,
-                                                       ToTypeName(oUniform.eType),
+                                                       ShaderInterfaceText::GetTypeName(oUniform.eType),
                                                        oUniform.uCount,
                                                        uExpectedCount));
                 }
@@ -221,12 +180,6 @@ namespace Flawy::Renderer
             std::vector<MaterialStaticSwitchValue> vValues;
             MaterialDescriptor oDescriptor;
             ShaderModuleSource oModule;
-        };
-
-        struct StageResult
-        {
-            CompiledShader oShader;
-            bool bFromCache = false;
         };
 
         Impl(MaterialSystem& oMaterialSystem, MaterialDescriptor oMaterialDescriptor, std::vector<MaterialStaticSwitchValue> vDefaultSwitches)
@@ -352,35 +305,15 @@ namespace Flawy::Renderer
             return oRequest;
         }
 
-        [[nodiscard]] StageResult CompileStage(const SpecializedShaderRequest& oRequest) const
-        {
-            ShaderCache& oCache = pSystem->GetShaderCache();
-            ShaderCompiler& oCompiler = pSystem->GetCompiler();
-            if (!oCache.IsEnabled())
-            {
-                return {oCompiler.CompileSpecialized(oRequest), false};
-            }
-
-            const ShaderCacheKey oCacheKey = ShaderCacheKey::FromRequest(oRequest, oCompiler.GetCacheFingerprint());
-            std::optional<CompiledShader> optCached = oCache.Find(oCacheKey);
-            if (optCached)
-            {
-                return {std::move(*optCached), true};
-            }
-
-            StageResult oResult{oCompiler.CompileSpecialized(oRequest), false};
-            oCache.Store(oCacheKey, oResult.oShader);
-            return oResult;
-        }
-
         [[nodiscard]] const MaterialPermutation& Compile(const MaterialPermutationKey& oKey)
         {
             const SwitchSetRecord& oSet = RequireSwitchSet(oKey.uStaticSwitchSet);
             const std::chrono::steady_clock::time_point tStart = std::chrono::steady_clock::now();
 
             const ShaderModuleSource oPassModule = MaterialPassTable::LoadModule(oKey.ePass);
-            const StageResult oVertex = CompileStage(BuildRequest(oPassModule, oSet, ShaderStage::Vertex, oKey));
-            const StageResult oFragment = CompileStage(BuildRequest(oPassModule, oSet, ShaderStage::Fragment, oKey));
+            CachingShaderCompiler oCompiler(pSystem->GetCompiler(), pSystem->GetShaderCache());
+            const CachedShaderResult oVertex = oCompiler.CompileSpecialized(BuildRequest(oPassModule, oSet, ShaderStage::Vertex, oKey));
+            const CachedShaderResult oFragment = oCompiler.CompileSpecialized(BuildRequest(oPassModule, oSet, ShaderStage::Fragment, oKey));
 
             auto upProgram = std::make_unique<ShaderProgram>(oVertex.oShader, oFragment.oShader);
             MaterialInterfaceVerifier(oSet.oDescriptor.sDebugName, *upProgram).Verify(oSet.oDescriptor.oParameters);
@@ -394,7 +327,7 @@ namespace Flawy::Renderer
 
             const std::chrono::duration<double, std::milli> tElapsed = std::chrono::steady_clock::now() - tStart;
             const uint32_t uCachedStages = (oVertex.bFromCache ? 1u : 0u) + (oFragment.bFromCache ? 1u : 0u);
-            LogCompiled(oKey, tElapsed.count(), DescribeOrigin(uCachedStages, 2), oVertex.oShader, oFragment.oShader);
+            LogCompiled(oKey, tElapsed.count(), CachingShaderCompiler::DescribeOrigin(uCachedStages, 2), oVertex.oShader, oFragment.oShader);
             return vPermutations.back()->oPermutation;
         }
 
@@ -415,7 +348,7 @@ namespace Flawy::Renderer
                          DescribeSwitches(oSet.vValues));
             for (const CompiledShader* pShader : {&oVertexShader, &oFragmentShader})
             {
-                oLogger.debug("  {} ({} bytes): {}", pShader->sName, pShader->vBgfxBinary.size(), DescribeUniforms(pShader->oInterface));
+                oLogger.debug("  {} ({} bytes): {}", pShader->sName, pShader->vBgfxBinary.size(), ShaderInterfaceText::DescribeUniforms(pShader->oInterface));
             }
         }
 

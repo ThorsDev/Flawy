@@ -1,8 +1,8 @@
 #include "Renderer/Shader/ShaderSourceFileSystem.hpp"
 
 #include "Flawy/Renderer/Shader/ShaderSource.hpp"
+#include "Renderer/Shader/ShaderSourcePath.hpp"
 
-#include <algorithm>
 #include <cstring>
 #include <optional>
 
@@ -10,8 +10,6 @@ namespace Flawy::Renderer
 {
     namespace
     {
-        constexpr std::string_view kCurrentDirectoryPrefix = "./";
-
         bool IsSameUuid(const SlangUUID& oLeft, const SlangUUID& oRight) noexcept
         {
             return std::memcmp(&oLeft, &oRight, sizeof(SlangUUID)) == 0;
@@ -65,7 +63,7 @@ namespace Flawy::Renderer
             return SLANG_E_INVALID_ARG;
         }
 
-        const std::optional<ShaderSource> optSource = m_oProvider.Load(NormalizePath(szPath));
+        const std::optional<ShaderSource> optSource = m_oProvider.Load(ShaderSourcePath::Normalize(szPath));
         if (!optSource)
         {
             return SLANG_E_NOT_FOUND;
@@ -73,17 +71,6 @@ namespace Flawy::Renderer
 
         *pOutBlob = slang_createBlob(optSource->sCode.data(), optSource->sCode.size());
         return *pOutBlob != nullptr ? SLANG_OK : SLANG_E_OUT_OF_MEMORY;
-    }
-
-    std::string ShaderSourceFileSystem::NormalizePath(std::string_view svPath)
-    {
-        std::string sPath(svPath);
-        std::ranges::replace(sPath, '\\', '/');
-        while (std::string_view(sPath).starts_with(kCurrentDirectoryPrefix))
-        {
-            sPath.erase(0, kCurrentDirectoryPrefix.size());
-        }
-        return sPath;
     }
 
     void* ShaderSourceFileSystem::FindInterface(const SlangUUID& oUuid) noexcept

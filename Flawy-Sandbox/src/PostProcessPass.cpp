@@ -47,7 +47,7 @@ namespace Sandbox
         Flawy::Renderer::DrawCommand oCommand;
         oCommand.pVertexBuffer = m_oResources.upVertexBuffer.get();
         oCommand.pIndexBuffer = m_oResources.upIndexBuffer.get();
-        oCommand.pProgram = m_oResources.upProgram.get();
+        oCommand.pProgram = m_oResources.pProgram;
         oCommand.pParameters = &oParameters;
         oCommand.oState.eDepthTest = Flawy::Renderer::DepthTest::Disabled;
         oCommand.oState.bDepthWrite = false;
